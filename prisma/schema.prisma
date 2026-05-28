@@ -1,0 +1,105 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum EducationType {
+  COLLEGE
+  UNIVERSITY
+  COURSES
+  OTHER
+  HIGHER
+  INCOMPLETE_HIGHER
+  SECONDARY_SPECIALIZED
+  RETRAINING_COURSES
+  SECONDARY
+  BASIC
+}
+
+enum LearningGoal {
+  CAREER_CHANGE
+  QUALIFICATION
+  JOB_SEARCH
+  PERSONAL_DEVELOPMENT
+}
+
+enum StudyFormat {
+  ONLINE
+  OFFLINE
+  HYBRID
+}
+
+enum ApplicationStatus {
+  NEW
+  IN_PROGRESS
+  CONTACTED
+  ENROLLED
+  REJECTED
+  COMPLETED
+}
+
+model User {
+  id           Int            @id @default(autoincrement())
+  telegramId   String         @unique
+  username     String?
+  fullName     String
+  phone        String?
+  gender       Gender?
+  age          Int?
+  birthDate    DateTime?
+  city         String?
+  createdAt    DateTime       @default(now())
+  applications Application[]
+}
+
+model Course {
+  id                   Int      @id @default(autoincrement())
+  title                String   @unique
+  educationType        String
+  duration             String?
+  format               String
+  hasPractice          Boolean  @default(false)
+  cost                 String?
+  canPayInInstallments Boolean  @default(false)
+  ageMin               Int      @default(18)
+  ageMax               Int      @default(45)
+  additionalInfo       String?
+  isActive             Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  applications Application[]
+}
+
+model Application {
+  id            Int              @id @default(autoincrement())
+  userId        Int
+  courseId      Int
+  experience    String?
+  workplace     String?
+  educationType EducationType?
+  specialization String?
+  learningGoal  LearningGoal?
+  studyFormat   StudyFormat?
+  studyTime     String?
+  source        String?
+  comment       String?
+  status        ApplicationStatus @default(NEW)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course        Course           @relation(fields: [courseId], references: [id], onDelete: Restrict)
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([courseId])
+  @@index([userId])
+}
