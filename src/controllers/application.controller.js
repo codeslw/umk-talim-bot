@@ -1,8 +1,16 @@
 const prisma = require('../config/prisma');
-const { createApplication, listApplications, updateApplicationStatus, statistics } = require('../repositories/applicationRepository');
+const {
+  createApplication,
+  listApplications,
+  updateApplicationStatus,
+  updateApplicationNotificationReference,
+  statistics
+} = require('../repositories/applicationRepository');
 const { buildApplicationsWorkbook } = require('../services/excel.service');
+const { notifyNewApplication, notifyApplicationStatusChanged } = require('../services/notification.service');
 const { applicationSchema } = require('../validators/application.validator');
 const { calculateAge } = require('../utils/date');
+const logger = require('../utils/logger');
 
 async function postApplication(req, res, next) {
   try {
@@ -47,6 +55,20 @@ async function postApplication(req, res, next) {
       source: payload.source,
       comment: payload.comment
     });
+
+    try {
+      const course = application.course || await prisma.course.findUnique({ where: { id: payload.courseId } });
+      const notification = await notifyNewApplication(application, user, course, req.body.birthDate, age);
+      if (notification.channelMessage) {
+        await updateApplicationNotificationReference(application.id, notification.channelMessage);
+      }
+    } catch (notifyErr) {
+      logger.error('Failed to notify about new API application', {
+        err: notifyErr,
+        applicationId: application.id
+      });
+    }
+
     res.status(201).json({ data: application });
   } catch (err) {
     next(err);
@@ -81,6 +103,14 @@ async function patchApplicationStatus(req, res, next) {
       return res.status(400).json({ error: 'Invalid status' });
     }
     const application = await updateApplicationStatus(Number(req.params.id), req.body.status);
+    try {
+      await notifyApplicationStatusChanged(application, 'API');
+    } catch (notifyErr) {
+      logger.error('Failed to notify about application status change', {
+        err: notifyErr,
+        applicationId: application.id
+      });
+    }
     res.json({ data: application });
   } catch (err) {
     next(err);

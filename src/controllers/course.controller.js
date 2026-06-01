@@ -20,8 +20,19 @@ async function postCourse(req, res, next) {
 
 async function removeCourse(req, res, next) {
   try {
-    await deleteCourse(Number(req.params.id));
-    res.status(204).send();
+    const result = await deleteCourse(Number(req.params.id));
+    if (result.deleted) {
+      res.status(204).send();
+      return;
+    }
+
+    res.status(200).json({
+      data: result.course,
+      deleted: false,
+      deactivated: true,
+      applicationCount: result.applicationCount,
+      message: 'Course has applications and was deactivated instead of deleted.'
+    });
   } catch (err) {
     next(err);
   }

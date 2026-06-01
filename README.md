@@ -89,6 +89,23 @@ The bot shows these fields in the course card before the applicant starts fillin
 Передавайте заголовок `x-admin-key: <ADMIN_API_KEY>`.
 Для Telegram-доступа можно указать `ADMIN_IDS` с числовыми ID и `ADMIN_USERNAMES` с username без `@` или ссылкой `https://t.me/...`.
 
+### Telegram admin commands
+
+Admins can send `/help`, `/commands`, `/admin_help`, or `/admin_commands` in Telegram to see all available bot commands.
+
+- `/start` - choose language and open the course menu.
+- `/help` - show available commands.
+- `/commands` - show available commands.
+- `/stats` - show the total application count.
+- `/cancel` - cancel the current application or wizard.
+- `/course_create` - create a course through the step-by-step wizard.
+- `/course_create {json}` - create a course from JSON.
+- `/course_list` - list all courses with edit/delete actions.
+- `/applications` - list applications.
+- `/applications NEW` - list applications filtered by status.
+- `/bot_stop` - stop Telegram polling in the current process.
+- `/stop_bot`, `/quit_bot`, `/shutdown_bot` - aliases for stopping polling.
+
 ## Структура
 
 ```

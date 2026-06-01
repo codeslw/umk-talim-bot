@@ -16,7 +16,27 @@ async function listApplications(filters = {}) {
 }
 
 async function updateApplicationStatus(id, status) {
-  return prisma.application.update({ where: { id }, data: { status } });
+  const current = await prisma.application.findUnique({
+    where: { id },
+    select: { status: true }
+  });
+  const updated = await prisma.application.update({
+    where: { id },
+    data: { status },
+    include: { user: true, course: true }
+  });
+
+  return { ...updated, previousStatus: current?.status || null };
+}
+
+async function updateApplicationNotificationReference(id, reference) {
+  return prisma.application.update({
+    where: { id },
+    data: {
+      notificationChatId: reference.chatId,
+      notificationMessageId: reference.messageId
+    }
+  });
 }
 
 async function statistics() {
@@ -31,4 +51,10 @@ async function statistics() {
   return { total, byStatus, byCourse, byGender, avgAge: avgAge._avg.age };
 }
 
-module.exports = { createApplication, listApplications, updateApplicationStatus, statistics };
+module.exports = {
+  createApplication,
+  listApplications,
+  updateApplicationStatus,
+  updateApplicationNotificationReference,
+  statistics
+};

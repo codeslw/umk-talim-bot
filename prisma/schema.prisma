@@ -64,7 +64,7 @@ model User {
 model Course {
   id                   Int      @id @default(autoincrement())
   title                String   @unique
-  educationType        String
+  educationType        String?
   duration             String?
   format               String
   hasPractice          Boolean  @default(false)
@@ -73,6 +73,7 @@ model Course {
   ageMin               Int      @default(18)
   ageMax               Int      @default(45)
   additionalInfo       String?
+  imageFileId          String?
   isActive             Boolean  @default(true)
   createdAt            DateTime @default(now())
   applications Application[]
@@ -92,6 +93,8 @@ model Application {
   source        String?
   comment       String?
   status        ApplicationStatus @default(NEW)
+  notificationChatId    String?
+  notificationMessageId Int?
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
 
