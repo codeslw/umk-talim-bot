@@ -2,10 +2,12 @@
   "name": "telegram-course-application-bot",
   "version": "1.0.0",
   "description": "Telegram bot for collecting course applications with PostgreSQL, Prisma, Excel reports and admin API.",
-  "main": "src/app.js",
+  "main": "dist/src/app.js",
   "scripts": {
-    "dev": "nodemon src/app.js",
-    "start": "node src/app.js",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "dev": "nodemon --watch src --watch docs --ext ts --exec ts-node src/app.ts",
+    "start": "node dist/src/app.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
@@ -30,7 +32,16 @@
     "winston": "^3.17.0"
   },
   "devDependencies": {
+    "@types/compression": "^1.8.1",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^4.17.25",
+    "@types/node": "^20.19.41",
+    "@types/node-telegram-bot-api": "^0.64.14",
+    "@types/swagger-jsdoc": "^6.0.4",
+    "@types/swagger-ui-express": "^4.1.8",
     "nodemon": "^3.1.10",
-    "prisma": "^5.22.0"
+    "prisma": "^5.22.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3"
   }
 }

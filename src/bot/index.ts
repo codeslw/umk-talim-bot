@@ -1,16 +1,47 @@
 const bot = require('../utils/telegram');
-const prisma = require('../config/prisma');
 const { adminIds, adminUsernames } = require('../config/env');
-const { listActiveCourses, listAllCourses, createCourse, updateCourse, deleteCourse, getCourseById } = require('../repositories/courseRepository');
+const {
+  listActiveCourses,
+  listAllCourses,
+  createCourse,
+  updateCourse,
+  deleteCourse,
+  getCourseById,
+  getActiveCourseById
+} = require('../services/course.service');
 const { applicationSchema } = require('../validators/application.validator');
 const {
-  createApplication,
-  listApplications,
-  updateApplicationStatus,
-  updateApplicationNotificationReference
-} = require('../repositories/applicationRepository');
-const { notifyNewApplication, notifyApplicationStatusChanged } = require('../services/notification.service');
+  BOT_APPLICATION_STATUS_LABELS: APPLICATION_STATUS_LABELS
+} = require('../constants/application');
+const {
+  COURSE_WIZARD_STEPS,
+  chunk,
+  formatCourseWizardSummary,
+  getCourseWizardPrompt,
+  normalizeCourseWizardValue,
+  normalizeCourseWizardCallback,
+  courseWizardKeyboard,
+  courseEditWizardKeyboard,
+  buildEditFieldKeyboard
+} = require('./courseWizard');
+const {
+  changeApplicationStatus,
+  createCourseApplication,
+  findUserByTelegramId,
+  getApplications,
+  getApplicationStats
+} = require('../services/application.service');
 const { calculateAge, parseBirthDate } = require('../utils/date');
+const { normalizeUsername } = require('../utils/normalize');
+const logger = require('../utils/logger');
+const { LANGUAGE_LABELS, TEXT } = require('./i18n');
+const { formatAvailableCommands } = require('./commands');
+const {
+  buildAppStatusKeyboard,
+  formatApplicationCard,
+  formatCourseAdminInfo,
+  formatCourseInfo
+} = require('./presenters');
 
 const formState = new Map();
 const userLanguage = new Map();
@@ -18,13 +49,15 @@ const courseCreateState = new Map();
 const courseEditState = new Map();
 let botPollingStopped = false;
 const CALLBACK_QUERY_TEXT_LIMIT = 200;
+type CallbackAnswerOptions = { text?: string; [key: string]: unknown };
+type InlineButton = { text: string; callback_data: string };
 
 function trimCallbackText(text) {
   if (!text || String(text).length <= CALLBACK_QUERY_TEXT_LIMIT) return text;
   return `${String(text).slice(0, CALLBACK_QUERY_TEXT_LIMIT - 3)}...`;
 }
 
-function answerCallbackQuery(queryId, options = undefined) {
+function answerCallbackQuery(queryId: string, options?: CallbackAnswerOptions) {
   if (!options) return bot.answerCallbackQuery(queryId);
   if (!options.text) return bot.answerCallbackQuery(queryId, options);
   return bot.answerCallbackQuery(queryId, {
@@ -32,150 +65,6 @@ function answerCallbackQuery(queryId, options = undefined) {
     text: trimCallbackText(options.text)
   });
 }
-
-const LANGUAGE_LABELS = {
-  ru: 'Русский',
-  uz: 'Узбекский',
-  uz_lat: "O'zbek"
-};
-
-const TEXT = {
-  ru: {
-    chooseLanguage: 'Выберите язык бота:',
-    welcome: 'Добро пожаловать в учебный центр. Выберите курс, чтобы оставить заявку:',
-    chooseCourse: 'Выбрать курс',
-    coursesTitle: 'Выберите курс из списка:',
-    noCourses: 'Пока нет активных курсов.',
-    usingSavedProfile: 'Используем сохранённые личные данные, где они уже заполнены.',
-    selectedCourse: (title) => `Вы выбрали курс: ${title}`,
-    enter: {
-      fullName: 'Введите ФИО:',
-      birthDate: 'Введите дату рождения в формате дд.мм.гггг:',
-      phone: 'Введите телефон в формате +998XXXXXXXXX:',
-      city: 'Введите город:',
-      experience: 'Введите опыт работы (например: 2 года, нет опыта):',
-      workplace: 'Введите текущее место работы (или "нет", если не работаете):',
-      specialization: 'Введите специализацию (вашу текущую профессию или область):',
-      studyTime: 'Введите удобное время обучения (например: утро, вечер, выходные):',
-      source: 'Откуда узнали о нас? (например: Instagram, друзья, реклама):',
-      comment: 'Введите комментарий (или "-", чтобы пропустить):'
-    },
-    gender: 'Выберите пол:',
-    learningGoal: 'Выберите цель обучения:',
-    studyFormat: 'Выберите формат обучения:',
-    invalid: (message) => `Ошибка: ${message}`,
-    saved: (id, title) => `Заявка №${id} успешно отправлена на курс "${title}".`,
-    stats: (total) => `Всего заявок: ${total}`,
-    options: {
-      gender: { MALE: 'Мужской', FEMALE: 'Женский' },
-      learningGoal: {
-        CAREER_CHANGE: 'Смена профессии',
-        QUALIFICATION: 'Повышение квалификации',
-        JOB_SEARCH: 'Поиск работы',
-        PERSONAL_DEVELOPMENT: 'Личное развитие'
-      },
-      studyFormat: { ONLINE: 'Онлайн', OFFLINE: 'Офлайн', HYBRID: 'Смешанный' }
-    }
-  },
-  uz: {
-    chooseLanguage: 'Бот тилини танланг:',
-    welcome: 'Ўқув марказига хуш келибсиз. Ариза қолдириш учун курсни танланг:',
-    chooseCourse: 'Курсни танлаш',
-    coursesTitle: 'Рўйхатдан курсни танланг:',
-    noCourses: 'Ҳозирча фаол курслар йўқ.',
-    usingSavedProfile: 'Аввал сақланган шахсий маълумотлардан фойдаланамиз.',
-    selectedCourse: (title) => `Сиз танлаган курс: ${title}`,
-    enter: {
-      fullName: 'Ф.И.О. ни киритинг:',
-      birthDate: 'Туғилган санани кк.оо.йййй форматида киритинг:',
-      phone: 'Телефон рақамини +998XXXXXXXXX форматида киритинг:',
-      city: 'Шаҳарни киритинг:',
-      experience: 'Иш тажрибангизни киритинг (масалан: 2 йил, тажриба йўқ):',
-      workplace: 'Ҳозирги иш жойингизни киритинг (ишламасангиз "йўқ" деб ёзинг):',
-      specialization: 'Мутахассислигингизни киритинг:',
-      studyTime: 'Ўқиш учун қулай вақтни киритинг (масалан: эрталаб, кечқурун):',
-      source: 'Биз ҳақимизда қаердан эшитдингиз? (масалан: Instagram, дўстлар):',
-      comment: 'Изоҳ киритинг (ёки «-» юборинг):'
-    },
-    gender: 'Жинсни танланг:',
-    learningGoal: 'Ўқиш мақсадини танланг:',
-    studyFormat: 'Ўқиш форматини танланг:',
-    invalid: (message) => `Хатолик: ${message}`,
-    saved: (id, title) => `Ариза №${id} "${title}" курсига муваффақиятли юборилди.`,
-    stats: (total) => `Жами аризалар: ${total}`,
-    options: {
-      gender: { MALE: 'Эркак', FEMALE: 'Аёл' },
-      learningGoal: {
-        CAREER_CHANGE: 'Касбни ўзгартириш',
-        QUALIFICATION: 'Малака ошириш',
-        JOB_SEARCH: 'Иш топиш',
-        PERSONAL_DEVELOPMENT: 'Шахсий ривожланиш'
-      },
-      studyFormat: { ONLINE: 'Онлайн', OFFLINE: 'Офлайн', HYBRID: 'Аралаш' }
-    }
-  },
-  uz_lat: {
-    chooseLanguage: "Bot tilini tanlang:",
-    welcome: "O'quv markaziga xush kelibsiz. Ariza qoldirish uchun kursni tanlang:",
-    chooseCourse: 'Kursni tanlash',
-    coursesTitle: "Ro'yxatdan kursni tanlang:",
-    noCourses: "Hozircha faol kurslar yo'q.",
-    usingSavedProfile: "Avval saqlangan shaxsiy ma'lumotlardan foydalanamiz.",
-    selectedCourse: (title) => `Siz tanlagan kurs: ${title}`,
-    enter: {
-      fullName: 'F.I.O. ni kiriting:',
-      birthDate: "Tug'ilgan sanani kk.oo.yyyy formatida kiriting:",
-      phone: 'Telefon raqamini +998XXXXXXXXX formatida kiriting:',
-      city: 'Shaharni kiriting:',
-      experience: "Ish tajribangizni kiriting (masalan: 2 yil, tajriba yo'q):",
-      workplace: "Hozirgi ish joyingizni kiriting (ishlamasangiz \"yo'q\" deb yozing):",
-      specialization: 'Mutaxassisligingizni kiriting:',
-      studyTime: "O'qish uchun qulay vaqtni kiriting (masalan: ertalab, kechqurun):",
-      source: "Biz haqimizda qayerdan eshitdingiz? (masalan: Instagram, do'stlar):",
-      comment: "Izoh kiriting (yoki «-» yuboring):"
-    },
-    gender: 'Jinsni tanlang:',
-    learningGoal: "O'qish maqsadini tanlang:",
-    studyFormat: "O'qish formatini tanlang:",
-    invalid: (message) => `Xatolik: ${message}`,
-    saved: (id, title) => `Ariza №${id} "${title}" kursiga muvaffaqiyatli yuborildi.`,
-    stats: (total) => `Jami arizalar: ${total}`,
-    options: {
-      gender: { MALE: 'Erkak', FEMALE: 'Ayol' },
-      learningGoal: {
-        CAREER_CHANGE: "Kasbni o'zgartirish",
-        QUALIFICATION: 'Malaka oshirish',
-        JOB_SEARCH: 'Ish topish',
-        PERSONAL_DEVELOPMENT: 'Shaxsiy rivojlanish'
-      },
-      studyFormat: { ONLINE: 'Onlayn', OFFLINE: 'Oflayn', HYBRID: 'Aralash' }
-    }
-  }
-};
-
-const COURSE_FORMAT_OPTIONS = {
-  ONLINE: 'Онлайн',
-  OFFLINE: 'Офлайн',
-  HYBRID: 'Смешанный'
-};
-
-const APPLICATION_STATUS_LABELS = {
-  NEW: '🆕 Новый',
-  IN_PROGRESS: '🔄 В работе',
-  CONTACTED: '📞 Связались',
-  ENROLLED: '✅ Зачислен',
-  REJECTED: '❌ Отклонён',
-  COMPLETED: '🎓 Завершён'
-};
-
-const APPLICATION_STATUS_TRANSITIONS = {
-  NEW: ['IN_PROGRESS', 'CONTACTED', 'REJECTED'],
-  IN_PROGRESS: ['CONTACTED', 'ENROLLED', 'REJECTED'],
-  CONTACTED: ['ENROLLED', 'REJECTED', 'IN_PROGRESS'],
-  ENROLLED: ['COMPLETED', 'REJECTED'],
-  REJECTED: ['IN_PROGRESS'],
-  COMPLETED: []
-};
 
 const STEPS = [
   'fullName',
@@ -195,68 +84,10 @@ const STEPS = [
 
 const PERSONAL_STEPS = new Set(['fullName', 'gender', 'birthDate', 'phone', 'city']);
 const OPTION_STEPS = ['gender', 'learningGoal', 'studyFormat'];
-const COURSE_BOOLEAN_FIELDS = new Set(['hasPractice', 'canPayInInstallments', 'isActive']);
-const COURSE_INT_FIELDS = new Set(['ageMin', 'ageMax']);
-const COURSE_YES_NO_FIELDS = new Set(['hasPractice', 'canPayInInstallments']);
-const COURSE_STATUS_FIELDS = new Set(['isActive']);
-const COURSE_OPTIONAL_FIELDS = new Set(['duration', 'cost', 'additionalInfo', 'image']);
-const COURSE_WIZARD_STEPS = [
-  'title',
-  'image',
-  'duration',
-  'format',
-  'hasPractice',
-  'cost',
-  'canPayInInstallments',
-  'ageMin',
-  'ageMax',
-  'additionalInfo',
-  'isActive'
-];
-
-const COURSE_EDIT_FIELDS = [
-  'title',
-  'image',
-  'duration',
-  'format',
-  'hasPractice',
-  'cost',
-  'canPayInInstallments',
-  'ageMin',
-  'ageMax',
-  'additionalInfo',
-  'isActive'
-];
-
 const APPS_PAGE_SIZE = 10;
-
-const PUBLIC_COMMANDS = [
-  ['/start', 'выбрать язык и открыть меню курсов'],
-  ['/help', 'показать доступные команды'],
-  ['/commands', 'показать доступные команды'],
-  ['/stats', 'показать общее количество заявок'],
-  ['/cancel', 'отменить текущую заявку или мастер']
-];
-
-const ADMIN_COMMANDS = [
-  ['/course_create', 'создать курс через пошаговый мастер'],
-  ['/course_create {json}', 'создать курс из JSON'],
-  ['/course_list', 'показать все курсы с управлением'],
-  ['/applications', 'показать заявки'],
-  ['/applications NEW', 'показать заявки с выбранным статусом'],
-  ['/admin_help', 'показать эту справку для администраторов'],
-  ['/admin_commands', 'показать эту справку для администраторов'],
-  ['/bot_stop', 'остановить Telegram polling в текущем процессе'],
-  ['/stop_bot, /quit_bot, /shutdown_bot', 'алиасы для остановки polling']
-];
 
 function isBotAdmin(userId) {
   return adminIds.includes(String(userId));
-}
-
-function normalizeUsername(value) {
-  const text = String(value || '').trim().replace(/^https?:\/\/t\.me\//i, '').replace(/^@/, '');
-  return text ? text.toLowerCase() : '';
 }
 
 function isBotAdminUser(msgFrom) {
@@ -283,37 +114,13 @@ function clearRuntimeState() {
   courseEditState.clear();
 }
 
-function formatAvailableCommands(isAdmin) {
-  const sections = [
-    ['Команды пользователя', PUBLIC_COMMANDS]
-  ];
-
-  if (isAdmin) {
-    sections.push([
-      'Команды администратора',
-      ADMIN_COMMANDS
-    ]);
-    sections.push([
-      'Статусы заявок для /applications',
-      Object.entries(APPLICATION_STATUS_LABELS).map(([status, label]) => [status, label])
-    ]);
-  }
-
-  return sections
-    .map(([title, commands]) => [
-      title,
-      ...commands.map(([command, description]) => `${command} - ${description}`)
-    ].join('\n'))
-    .join('\n\n');
-}
-
 async function stopBotPolling(reason = 'manual stop') {
   if (!bot || botPollingStopped) return;
 
   botPollingStopped = true;
   clearRuntimeState();
   await bot.stopPolling({ cancel: true });
-  console.log(`Telegram bot polling stopped: ${reason}`);
+  logger.info(`Telegram bot polling stopped: ${reason}`);
 }
 
 function safeJsonParse(text) {
@@ -322,50 +129,6 @@ function safeJsonParse(text) {
   } catch (err) {
     return { value: null, error: err };
   }
-}
-
-function parseBooleanInput(value) {
-  const normalized = String(value).trim().toLowerCase();
-  if (['yes', 'y', 'true', '1', 'да', 'ha', 'x', 'on'].includes(normalized)) return true;
-  if (['no', 'n', 'false', '0', 'нет', "yo'q", 'off'].includes(normalized)) return false;
-  return null;
-}
-
-function formatCourseWizardSummary(data) {
-  const notSet = 'не указано';
-  const yes = 'да';
-  const no = 'нет';
-  return [
-    'Предпросмотр курса:',
-    `Название: ${data.title}`,
-    `Изображение: ${data.imageFileId ? 'загружено' : notSet}`,
-    `Продолжительность: ${data.duration || notSet}`,
-    `Формат: ${COURSE_FORMAT_OPTIONS[data.format] || data.format}`,
-    `Практика: ${data.hasPractice ? yes : no}`,
-    `Стоимость: ${data.cost || notSet}`,
-    `Оплата частями: ${data.canPayInInstallments ? yes : no}`,
-    `Возраст: ${data.ageMin}-${data.ageMax}`,
-    `Дополнительная информация: ${data.additionalInfo || notSet}`,
-    `Активен: ${data.isActive ? yes : no}`
-  ].join('\n');
-}
-
-function getCourseWizardPrompt(step) {
-  const prompts = {
-    title: 'Введите название курса:',
-    image: 'Отправьте фото для курса или «-», чтобы пропустить:',
-    duration: 'Введите продолжительность или отправьте «-», чтобы пропустить:',
-    format: 'Выберите формат обучения с помощью кнопок ниже:',
-    hasPractice: 'Есть ли практика? Выберите «Да» или «Нет»:',
-    cost: 'Введите стоимость или отправьте «-», чтобы пропустить:',
-    canPayInInstallments: 'Доступна ли оплата частями? Выберите «Да» или «Нет»:',
-    ageMin: 'Введите минимальный возраст (целое число):',
-    ageMax: 'Введите максимальный возраст (целое число):',
-    additionalInfo: 'Введите дополнительную информацию или отправьте «-», чтобы пропустить:',
-    isActive: 'Сделать курс активным сейчас? Выберите «Активен» или «Неактивен»:'
-  };
-
-  return prompts[step] || 'Введите значение:';
 }
 
 function startCourseWizard(chatId) {
@@ -385,45 +148,6 @@ async function askCourseWizardStep(chatId) {
     getCourseWizardPrompt(step),
     keyboard ? { reply_markup: keyboard } : undefined
   );
-}
-
-function normalizeCourseWizardValue(step, value) {
-  const text = String(value).trim();
-  if (text === '-') {
-    return COURSE_OPTIONAL_FIELDS.has(step) ? { ok: true, value: null } : { ok: false };
-  }
-
-  if (!text) return { ok: false };
-
-  if (COURSE_BOOLEAN_FIELDS.has(step)) {
-    const parsed = parseBooleanInput(text);
-    return parsed === null ? { ok: false } : { ok: true, value: parsed };
-  }
-
-  if (COURSE_INT_FIELDS.has(step)) {
-    const parsed = Number.parseInt(text, 10);
-    return Number.isFinite(parsed) ? { ok: true, value: parsed } : { ok: false };
-  }
-
-  if (step === 'format') {
-    return COURSE_FORMAT_OPTIONS[text] ? { ok: true, value: text } : { ok: false };
-  }
-
-  return { ok: true, value: text };
-}
-
-function normalizeCourseWizardCallback(step, value) {
-  if (COURSE_BOOLEAN_FIELDS.has(step)) {
-    if (value === 'true') return { ok: true, value: true };
-    if (value === 'false') return { ok: true, value: false };
-    return { ok: false };
-  }
-
-  if (step === 'format') {
-    return COURSE_FORMAT_OPTIONS[value] ? { ok: true, value } : { ok: false };
-  }
-
-  return { ok: false };
 }
 
 async function finishCourseWizard(chatId) {
@@ -469,126 +193,6 @@ function getLang(chatId) {
 
 function getText(chatId) {
   return TEXT[getLang(chatId)];
-}
-
-function chunk(items, size) {
-  const rows = [];
-  for (let i = 0; i < items.length; i += size) {
-    rows.push(items.slice(i, i + size));
-  }
-  return rows;
-}
-
-function courseWizardKeyboard(step) {
-  if (step === 'format') {
-    return {
-      inline_keyboard: chunk(
-        Object.entries(COURSE_FORMAT_OPTIONS).map(([value, label]) => ({
-          text: label,
-          callback_data: `course_create:pick:${step}:${value}`
-        })),
-        1
-      )
-    };
-  }
-
-  if (COURSE_YES_NO_FIELDS.has(step)) {
-    return {
-      inline_keyboard: [[
-        { text: 'Да', callback_data: `course_create:pick:${step}:true` },
-        { text: 'Нет', callback_data: `course_create:pick:${step}:false` }
-      ]]
-    };
-  }
-
-  if (COURSE_STATUS_FIELDS.has(step)) {
-    return {
-      inline_keyboard: [[
-        { text: 'Активен', callback_data: `course_create:pick:${step}:true` },
-        { text: 'Неактивен', callback_data: `course_create:pick:${step}:false` }
-      ]]
-    };
-  }
-
-  return null;
-}
-
-function courseEditWizardKeyboard(step, courseId) {
-  if (step === 'format') {
-    return {
-      inline_keyboard: chunk(
-        Object.entries(COURSE_FORMAT_OPTIONS).map(([value, label]) => ({
-          text: label,
-          callback_data: `course_edit:pick:${courseId}:${step}:${value}`
-        })),
-        1
-      )
-    };
-  }
-
-  if (COURSE_YES_NO_FIELDS.has(step)) {
-    return {
-      inline_keyboard: [[
-        { text: 'Да', callback_data: `course_edit:pick:${courseId}:${step}:true` },
-        { text: 'Нет', callback_data: `course_edit:pick:${courseId}:${step}:false` }
-      ]]
-    };
-  }
-
-  if (COURSE_STATUS_FIELDS.has(step)) {
-    return {
-      inline_keyboard: [[
-        { text: 'Активен', callback_data: `course_edit:pick:${courseId}:${step}:true` },
-        { text: 'Неактивен', callback_data: `course_edit:pick:${courseId}:${step}:false` }
-      ]]
-    };
-  }
-
-  return null;
-}
-
-function yesNo(value, chatId) {
-  const lang = getLang(chatId);
-  const map = {
-    ru: { true: 'Да', false: 'Нет' },
-    uz: { true: 'Ha', false: "Yo'q" },
-    uz_lat: { true: 'Ha', false: "Yo'q" }
-  };
-
-  return map[lang][String(Boolean(value))];
-}
-
-function formatCourseInfo(course, chatId) {
-  return [
-    `*${course.title}*`,
-    course.duration ? `Продолжительность: ${course.duration}` : null,
-    `Формат: ${course.format}`,
-    `Практика: ${yesNo(course.hasPractice, chatId)}`,
-    course.cost ? `Стоимость: ${course.cost}` : null,
-    `Оплата частями: ${yesNo(course.canPayInInstallments, chatId)}`,
-    `Возраст: ${course.ageMin}-${course.ageMax} лет`,
-    course.additionalInfo ? `Дополнительная информация: ${course.additionalInfo}` : null
-  ]
-    .filter(Boolean)
-    .join('\n');
-}
-
-function formatCourseAdminInfo(course) {
-  const notSet = 'не указано';
-  const yes = 'да';
-  const no = 'нет';
-  return [
-    `*${course.title}* (ID: ${course.id})`,
-    `Статус: ${course.isActive ? '✅ Активен' : '❌ Неактивен'}`,
-    `Формат: ${COURSE_FORMAT_OPTIONS[course.format] || course.format}`,
-    `Продолжительность: ${course.duration || notSet}`,
-    `Практика: ${course.hasPractice ? yes : no}`,
-    `Стоимость: ${course.cost || notSet}`,
-    `Оплата частями: ${course.canPayInInstallments ? yes : no}`,
-    `Возраст: ${course.ageMin}-${course.ageMax} лет`,
-    `Изображение: ${course.imageFileId ? 'есть' : notSet}`,
-    `Доп. инфо: ${course.additionalInfo || notSet}`
-  ].join('\n');
 }
 
 async function sendCourseWithImage(chatId, course, text, opts = {}) {
@@ -661,31 +265,6 @@ async function sendAdminCourseList(chatId) {
     };
     await bot.sendMessage(chatId, text, { parse_mode: 'Markdown', reply_markup: keyboard });
   }
-}
-
-function buildEditFieldKeyboard(courseId) {
-  const fieldLabels = {
-    title: 'Название',
-    image: 'Изображение',
-    duration: 'Продолжительность',
-    format: 'Формат',
-    hasPractice: 'Практика',
-    cost: 'Стоимость',
-    canPayInInstallments: 'Оплата частями',
-    ageMin: 'Мин. возраст',
-    ageMax: 'Макс. возраст',
-    additionalInfo: 'Доп. инфо',
-    isActive: 'Статус'
-  };
-  return {
-    inline_keyboard: chunk(
-      COURSE_EDIT_FIELDS.map((field) => ({
-        text: fieldLabels[field] || field,
-        callback_data: `course_edit:field:${courseId}:${field}`
-      })),
-      2
-    )
-  };
 }
 
 function getOptionsForStep(step, chatId) {
@@ -783,55 +362,11 @@ async function finishApplication(chatId) {
     return;
   }
 
-  const age = value.age || calculateAge(value.birthDate);
-  const user = await prisma.user.upsert({
-    where: { telegramId: value.telegramId },
-    create: {
-      telegramId: value.telegramId,
-      username: value.telegramUsername || null,
-      fullName: value.fullName,
-      phone: value.phone,
-      gender: value.gender,
-      age,
-      birthDate: value.birthDate,
-      city: value.city
-    },
-    update: {
-      username: value.telegramUsername || null,
-      fullName: value.fullName,
-      phone: value.phone,
-      gender: value.gender,
-      age,
-      birthDate: value.birthDate,
-      city: value.city
-    }
+  const { application, course } = await createCourseApplication(value, {
+    birthDate: state.data.birthDate,
+    source: 'bot'
   });
-
-  const application = await createApplication({
-    userId: user.id,
-    courseId: value.courseId,
-    experience: value.experience,
-    workplace: value.workplace,
-    educationType: value.educationType,
-    specialization: value.specialization,
-    learningGoal: value.learningGoal,
-    studyFormat: value.studyFormat,
-    studyTime: value.studyTime,
-    source: value.source,
-    comment: value.comment === '-' ? null : value.comment
-  });
-
-  const course = await prisma.course.findUnique({ where: { id: value.courseId } });
   const courseTitle = course ? course.title : String(value.courseId);
-
-  try {
-    const notification = await notifyNewApplication(application, user, course, state.data.birthDate, age);
-    if (notification.channelMessage) {
-      await updateApplicationNotificationReference(application.id, notification.channelMessage);
-    }
-  } catch (err) {
-    console.error('Failed to notify admins about new application:', err.message);
-  }
 
   await bot.sendMessage(chatId, t.saved(application.id, courseTitle));
   formState.delete(chatId);
@@ -858,35 +393,10 @@ async function saveAnswer(chatId, step, value) {
   await finishApplication(chatId);
 }
 
-function formatApplicationCard(app) {
-  const statusLabel = APPLICATION_STATUS_LABELS[app.status] || app.status;
-  return [
-    `🆔 Заявка #${app.id}`,
-    `👤 ${app.user?.fullName || 'неизвестно'}`,
-    `📞 ${app.user?.phone || 'нет телефона'}`,
-    `📌 Курс: ${app.course?.title || 'неизвестно'}`,
-    `📊 Статус: ${statusLabel}`,
-    `📅 ${new Date(app.createdAt).toLocaleDateString('ru-RU')}`
-  ].join('\n');
-}
-
-function buildAppStatusKeyboard(app) {
-  const transitions = APPLICATION_STATUS_TRANSITIONS[app.status] || [];
-  if (!transitions.length) return null;
-  return {
-    inline_keyboard: [
-      transitions.map((status) => ({
-        text: APPLICATION_STATUS_LABELS[status] || status,
-        callback_data: `app_status:${app.id}:${status}`
-      }))
-    ]
-  };
-}
-
 async function sendApplicationsPage(chatId, page, statusFilter) {
   const pageNum = Number(page) || 0;
   const where = statusFilter ? { status: statusFilter } : {};
-  const apps = await listApplications(where);
+  const apps = await getApplications(where);
   const total = apps.length;
   const totalPages = Math.ceil(total / APPS_PAGE_SIZE);
   const pageApps = apps.slice(pageNum * APPS_PAGE_SIZE, (pageNum + 1) * APPS_PAGE_SIZE);
@@ -902,7 +412,7 @@ async function sendApplicationsPage(chatId, page, statusFilter) {
   }));
   filterButtons.push({ text: 'Все', callback_data: 'apps_page:0:ALL' });
 
-  const navRow = [];
+  const navRow: InlineButton[] = [];
   if (pageNum > 0) navRow.push({ text: '◀️ Назад', callback_data: `apps_page:${pageNum - 1}:${statusFilter || 'ALL'}` });
   if (pageNum < totalPages - 1) navRow.push({ text: 'Вперёд ▶️', callback_data: `apps_page:${pageNum + 1}:${statusFilter || 'ALL'}` });
 
@@ -1220,17 +730,12 @@ if (bot) {
       const newStatus = parts[2];
 
       try {
-        const updated = await updateApplicationStatus(appId, newStatus);
-        const statusLabel = APPLICATION_STATUS_LABELS[updated.status] || updated.status;
-        await answerCallbackQuery(query.id, { text: `Статус обновлён: ${statusLabel}` });
         const changedBy = query.from?.username
           ? `@${query.from.username}`
           : String(query.from?.id || 'администратор');
-        try {
-          await notifyApplicationStatusChanged(updated, changedBy);
-        } catch (notifyErr) {
-          console.error('Failed to notify about application status change:', notifyErr.message);
-        }
+        const updated = await changeApplicationStatus(appId, newStatus, changedBy);
+        const statusLabel = APPLICATION_STATUS_LABELS[updated.status] || updated.status;
+        await answerCallbackQuery(query.id, { text: `Статус обновлён: ${statusLabel}` });
 
         const newText = formatApplicationCard(updated);
         const newKeyboard = buildAppStatusKeyboard(updated);
@@ -1253,7 +758,7 @@ if (bot) {
 
     if (callbackData.startsWith('course:')) {
       const courseId = Number(callbackData.split(':')[1]);
-      const course = await prisma.course.findFirst({ where: { id: courseId, isActive: true } });
+      const course = await getActiveCourseById(courseId);
 
       if (!course) {
         await answerCallbackQuery(query.id, { text: 'Курс не найден или неактивен.' });
@@ -1261,16 +766,14 @@ if (bot) {
         return;
       }
 
-      const infoText = formatCourseInfo(course, chatId);
+      const infoText = formatCourseInfo(course, getLang(chatId));
       await sendCourseWithImage(chatId, course, infoText);
       const applicationData = {
         telegramId: String(query.from.id),
         telegramUsername: query.from.username || '',
         courseId
       };
-      const savedUser = await prisma.user.findUnique({
-        where: { telegramId: String(query.from.id) }
-      });
+      const savedUser = await findUserByTelegramId(query.from.id);
       const usedSavedProfile = applySavedProfile(applicationData, savedUser);
       const nextState = {
         step: 0,
@@ -1296,7 +799,7 @@ if (bot) {
 
     await answerCallbackQuery(query.id, { text: 'Неизвестное действие.' });
     } catch (err) {
-      console.error('callback_query handler error:', err);
+      logger.error('callback_query handler error', { err });
       try { await answerCallbackQuery(query.id, { text: `Ошибка: ${err.message}` }); } catch (_) {}
       if (chatId) {
         try { await bot.sendMessage(chatId, `Произошла ошибка. Попробуйте /start ещё раз.\n${err.message}`); } catch (_) {}
@@ -1430,19 +933,19 @@ if (bot) {
 
     await saveAnswer(msg.chat.id, step, msg.text);
     } catch (err) {
-      console.error('message handler error:', err);
+      logger.error('message handler error', { err });
       try { await bot.sendMessage(msg.chat.id, `Произошла ошибка: ${err.message}`); } catch (_) {}
     }
   });
 
   bot.onText(/\/stats/, async (msg) => {
-    const applications = await prisma.application.count();
-    await bot.sendMessage(msg.chat.id, getText(msg.chat.id).stats(applications));
+    const stats = await getApplicationStats();
+    await bot.sendMessage(msg.chat.id, getText(msg.chat.id).stats(stats.total));
   });
 
   bot.stopGracefully = stopBotPolling;
   bot.startConfiguredPolling?.().catch((err) => {
-    console.error('Failed to start Telegram polling:', err.message);
+    logger.error('Failed to start Telegram polling', { err });
   });
 }
 

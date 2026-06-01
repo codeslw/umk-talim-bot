@@ -1,14 +1,6 @@
 const Joi = require('joi');
+const { EDUCATION_TYPES, LEARNING_GOALS, STUDY_FORMATS } = require('../constants/application');
 const { calculateAge, parseBirthDate } = require('../utils/date');
-
-const educationTypes = [
-  'HIGHER',
-  'INCOMPLETE_HIGHER',
-  'SECONDARY_SPECIALIZED',
-  'RETRAINING_COURSES',
-  'SECONDARY',
-  'BASIC'
-];
 
 const birthDateSchema = Joi.custom((value, helpers) => {
   const birthDate = parseBirthDate(value);
@@ -39,10 +31,10 @@ const applicationSchema = Joi.object({
   courseId: Joi.number().integer().required(),
   experience: Joi.string().max(500).allow('', null),
   workplace: Joi.string().max(200).allow('', null),
-  educationType: Joi.string().valid(...educationTypes).allow(null),
+  educationType: Joi.string().valid(...EDUCATION_TYPES).allow(null),
   specialization: Joi.string().max(200).allow('', null),
-  learningGoal: Joi.string().valid('CAREER_CHANGE', 'QUALIFICATION', 'JOB_SEARCH', 'PERSONAL_DEVELOPMENT').required(),
-  studyFormat: Joi.string().valid('ONLINE', 'OFFLINE', 'HYBRID').required(),
+  learningGoal: Joi.string().valid(...LEARNING_GOALS).required(),
+  studyFormat: Joi.string().valid(...STUDY_FORMATS).required(),
   studyTime: Joi.string().max(120).required(),
   source: Joi.string().max(120).required(),
   comment: Joi.string().max(1000).allow('', null)

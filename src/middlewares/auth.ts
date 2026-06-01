@@ -1,9 +1,5 @@
 const { adminApiKey, adminIds, adminUsernames } = require('../config/env');
-
-function normalizeUsername(value) {
-  const text = String(value || '').trim().replace(/^https?:\/\/t\.me\//i, '').replace(/^@/, '');
-  return text ? text.toLowerCase() : '';
-}
+const { normalizeUsername } = require('../utils/normalize');
 
 function adminAuth(req, res, next) {
   const key = req.header('x-admin-key');

@@ -14,6 +14,7 @@ Telegram-бот для приема заявок на учебные курсы,
 ## Стек
 
 - Node.js
+- TypeScript
 - Express.js
 - PostgreSQL
 - Prisma ORM
@@ -43,6 +44,13 @@ npx prisma migrate dev
 
 ```bash
 npm run dev
+```
+
+For production builds:
+
+```bash
+npm run build
+npm start
 ```
 
 ## Docker
@@ -111,7 +119,9 @@ Admins can send `/help`, `/commands`, `/admin_help`, or `/admin_commands` in Tel
 ```
 src/
 ├── bot/
+├── constants/
 ├── controllers/
+├── http/
 ├── services/
 ├── repositories/
 ├── routes/

@@ -1,15 +1,7 @@
 const bot = require('../utils/telegram');
 const { adminIds, applicationsChannelId } = require('../config/env');
+const { APPLICATION_STATUS_LABELS } = require('../constants/application');
 const logger = require('../utils/logger');
-
-const APPLICATION_STATUS_LABELS = {
-  NEW: 'Новый',
-  IN_PROGRESS: 'В работе',
-  CONTACTED: 'Связались',
-  ENROLLED: 'Зачислен',
-  REJECTED: 'Отклонён',
-  COMPLETED: 'Завершён'
-};
 
 function formatApplicationNotification(application, user, course, birthDate, age) {
   const statusLabel = APPLICATION_STATUS_LABELS[application.status] || application.status;
@@ -71,7 +63,7 @@ async function notifyAdmins(text, opts = {}) {
     return [];
   }
 
-  const targets = [];
+  const targets: Array<string | number> = [];
   if (applicationsChannelId) {
     if (applicationsChannelId.startsWith('+')) {
       logger.error('APPLICATIONS_CHANNEL_ID looks like a private invite link/hash. Use a public @channelusername or the numeric -100... channel id.');
@@ -130,7 +122,7 @@ async function notifyApplicationStatusChanged(application, changedBy) {
     return null;
   }
 
-  const opts = {};
+  const opts: Record<string, unknown> = {};
   if (
     application.notificationChatId &&
     application.notificationMessageId &&

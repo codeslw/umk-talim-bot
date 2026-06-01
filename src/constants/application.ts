@@ -1,0 +1,63 @@
+const APPLICATION_STATUSES = Object.freeze([
+  'NEW',
+  'IN_PROGRESS',
+  'CONTACTED',
+  'ENROLLED',
+  'REJECTED',
+  'COMPLETED'
+]);
+
+const APPLICATION_STATUS_LABELS = Object.freeze({
+  NEW: 'Новый',
+  IN_PROGRESS: 'В работе',
+  CONTACTED: 'Связались',
+  ENROLLED: 'Зачислен',
+  REJECTED: 'Отклонён',
+  COMPLETED: 'Завершён'
+});
+
+const BOT_APPLICATION_STATUS_LABELS = Object.freeze({
+  NEW: '🆕 Новый',
+  IN_PROGRESS: '🔄 В работе',
+  CONTACTED: '📞 Связались',
+  ENROLLED: '✅ Зачислен',
+  REJECTED: '❌ Отклонён',
+  COMPLETED: '🎓 Завершён'
+});
+
+const APPLICATION_STATUS_TRANSITIONS = Object.freeze({
+  NEW: ['IN_PROGRESS', 'CONTACTED', 'REJECTED'],
+  IN_PROGRESS: ['CONTACTED', 'ENROLLED', 'REJECTED'],
+  CONTACTED: ['ENROLLED', 'REJECTED', 'IN_PROGRESS'],
+  ENROLLED: ['COMPLETED', 'REJECTED'],
+  REJECTED: ['IN_PROGRESS'],
+  COMPLETED: []
+});
+
+const EDUCATION_TYPES = Object.freeze([
+  'HIGHER',
+  'INCOMPLETE_HIGHER',
+  'SECONDARY_SPECIALIZED',
+  'RETRAINING_COURSES',
+  'SECONDARY',
+  'BASIC'
+]);
+
+const LEARNING_GOALS = Object.freeze([
+  'CAREER_CHANGE',
+  'QUALIFICATION',
+  'JOB_SEARCH',
+  'PERSONAL_DEVELOPMENT'
+]);
+
+const STUDY_FORMATS = Object.freeze(['ONLINE', 'OFFLINE', 'HYBRID']);
+
+module.exports = {
+  APPLICATION_STATUSES,
+  APPLICATION_STATUS_LABELS,
+  BOT_APPLICATION_STATUS_LABELS,
+  APPLICATION_STATUS_TRANSITIONS,
+  EDUCATION_TYPES,
+  LEARNING_GOALS,
+  STUDY_FORMATS
+};
