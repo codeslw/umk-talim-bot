@@ -338,7 +338,7 @@ async function askCurrentStep(chatId) {
   if (!state) return;
 
   const step = STEPS[state.step];
-  const prompt = getPrompt(step, chatId);
+  const prompt = `(${state.step + 1}/${STEPS.length}) ${getPrompt(step, chatId)}`;
 
   if (OPTION_STEPS.includes(step)) {
     const options = Object.entries(getOptionsForStep(step, chatId)).map(([value, label]) => ({
