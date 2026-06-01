@@ -9,14 +9,14 @@ const birthDateSchema = Joi.custom((value, helpers) => {
   }
 
   const age = calculateAge(birthDate);
-  if (age < 18 || age > 45) {
+  if (age < 0 || age > 120) {
     return helpers.error('date.outOfRange');
   }
 
   return birthDate;
 }, 'birth date in dd.mm.yyyy format').messages({
   'any.invalid': 'Дата рождения должна быть в формате дд.мм.гггг',
-  'date.outOfRange': 'Возраст должен быть от 18 до 45 лет'
+  'date.outOfRange': 'Некорректная дата рождения'
 });
 
 const applicationSchema = Joi.object({
@@ -24,7 +24,7 @@ const applicationSchema = Joi.object({
   fullName: Joi.string().min(3).max(120).required(),
   gender: Joi.string().valid('MALE', 'FEMALE').required(),
   birthDate: birthDateSchema.required(),
-  age: Joi.number().integer().min(18).max(45),
+  age: Joi.number().integer().min(0).max(120),
   phone: Joi.string().pattern(/^\+?[0-9()\-\s]{7,20}$/).required(),
   telegramUsername: Joi.string().max(64).allow('', null),
   city: Joi.string().min(2).max(80).required(),
