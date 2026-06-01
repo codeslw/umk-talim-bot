@@ -83,7 +83,7 @@ const STEPS = [
 ];
 
 const PERSONAL_STEPS = new Set(['fullName', 'gender', 'birthDate', 'phone', 'city']);
-const OPTION_STEPS = ['gender', 'learningGoal', 'studyFormat'];
+const OPTION_STEPS = ['gender', 'learningGoal', 'studyFormat', 'source'];
 const APPS_PAGE_SIZE = 10;
 
 function isBotAdmin(userId) {
@@ -273,6 +273,9 @@ async function sendAdminCourseList(chatId) {
 
 function getOptionsForStep(step, chatId) {
   const t = getText(chatId);
+  if (step === 'source') {
+    return t.sourceOptions || {};
+  }
   return t.options[step] || {};
 }
 
@@ -286,13 +289,15 @@ function getPrompt(step, chatId) {
   return t.enter[step];
 }
 
-function hasSavedPersonalValue(data, step) {
+function hasSavedPersonalValue(data, step, state?) {
   const value = data[step];
 
   if (step === 'birthDate') {
     const birthDate = parseBirthDate(value);
     const age = birthDate ? calculateAge(birthDate) : null;
-    return Number.isInteger(age) && age >= 18 && age <= 45;
+    const min = state?.courseAgeMin ?? 18;
+    const max = state?.courseAgeMax ?? 45;
+    return Number.isInteger(age) && age >= min && age <= max;
   }
   if (step === 'gender') return ['MALE', 'FEMALE'].includes(value);
   if (step === 'fullName') return typeof value === 'string' && value.trim().length >= 3;
@@ -305,7 +310,7 @@ function skipSavedPersonalSteps(state) {
   while (
     state.step < STEPS.length &&
     PERSONAL_STEPS.has(STEPS[state.step]) &&
-    hasSavedPersonalValue(state.data, STEPS[state.step])
+    hasSavedPersonalValue(state.data, STEPS[state.step], state)
   ) {
     state.step += 1;
   }
@@ -355,6 +360,29 @@ async function askCurrentStep(chatId) {
   await bot.sendMessage(chatId, prompt);
 }
 
+async function showConfirmation(chatId) {
+  const state = formState.get(chatId);
+  if (!state) return;
+
+  const { formatApplicationSummary } = require('./presenters');
+  const lang = getLang(chatId);
+  const t = getText(chatId);
+  const L = t.confirmLabels;
+
+  state.awaitingConfirmation = true;
+
+  const summary = formatApplicationSummary(state.data, lang);
+
+  await bot.sendMessage(chatId, summary, {
+    reply_markup: {
+      inline_keyboard: [[
+        { text: L.confirm, callback_data: 'confirm_app' },
+        { text: L.cancel, callback_data: 'cancel_app' }
+      ]]
+    }
+  });
+}
+
 async function finishApplication(chatId) {
   const state = formState.get(chatId);
   const { value, error } = applicationSchema.validate(state.data, { abortEarly: false });
@@ -385,6 +413,25 @@ async function saveAnswer(chatId, step, value) {
     return;
   }
 
+  if (step === 'birthDate') {
+    const birthDate = parseBirthDate(value);
+    const age = birthDate ? calculateAge(birthDate) : null;
+    const min = state.courseAgeMin ?? 18;
+    const max = state.courseAgeMax ?? 45;
+    if (age === null || age < min || age > max) {
+      const t = getText(chatId);
+      await bot.sendMessage(chatId, t.ageOutOfRange(min, max));
+      await bot.sendMessage(chatId, getPrompt(step, chatId));
+      return;
+    }
+  }
+
+  if (step === 'source' && value === 'other') {
+    state.data[step] = 'OTHER_PENDING';
+    await bot.sendMessage(chatId, getText(chatId).enter.sourceOther);
+    return;
+  }
+
   state.data[step] = typeof value === 'string' ? value.trim() : value;
   state.step += 1;
   skipSavedPersonalSteps(state);
@@ -394,7 +441,7 @@ async function saveAnswer(chatId, step, value) {
     return;
   }
 
-  await finishApplication(chatId);
+  await showConfirmation(chatId);
 }
 
 async function sendApplicationsPage(chatId, page, statusFilter) {
@@ -577,7 +624,7 @@ if (bot) {
       courseState.stepIndex += 1;
 
       if (courseState.stepIndex >= COURSE_WIZARD_STEPS.length) {
-        await bot.sendMessage(chatId, formatCourseWizardSummary(courseState.data));
+        await bot.sendMessage(chatId, formatCourseWizardSummary(courseState.data, 'ru'));
         await finishCourseWizard(chatId);
         return;
       }
@@ -781,7 +828,10 @@ if (bot) {
       const usedSavedProfile = applySavedProfile(applicationData, savedUser);
       const nextState = {
         step: 0,
-        data: applicationData
+        data: applicationData,
+        courseAgeMin: course.ageMin ?? 18,
+        courseAgeMax: course.ageMax ?? 45,
+        awaitingConfirmation: false
       };
       skipSavedPersonalSteps(nextState);
       formState.set(chatId, nextState);
@@ -798,6 +848,24 @@ if (bot) {
       const [, step, value] = callbackData.split(':');
       await answerCallbackQuery(query.id);
       await saveAnswer(chatId, step, value);
+      return;
+    }
+
+    if (callbackData === 'confirm_app') {
+      const state = formState.get(chatId);
+      if (!state || !state.awaitingConfirmation) {
+        await answerCallbackQuery(query.id, { text: 'Нет активной заявки.' });
+        return;
+      }
+      await answerCallbackQuery(query.id);
+      await finishApplication(chatId);
+      return;
+    }
+
+    if (callbackData === 'cancel_app') {
+      formState.delete(chatId);
+      await answerCallbackQuery(query.id);
+      await sendMainMenu(chatId);
       return;
     }
 
@@ -821,7 +889,7 @@ if (bot) {
       courseState.stepIndex += 1;
 
       if (courseState.stepIndex >= COURSE_WIZARD_STEPS.length) {
-        await bot.sendMessage(chatId, formatCourseWizardSummary(courseState.data));
+        await bot.sendMessage(chatId, formatCourseWizardSummary(courseState.data, 'ru'));
         await finishCourseWizard(chatId);
         return;
       }
@@ -857,7 +925,7 @@ if (bot) {
           courseState.stepIndex += 1;
 
           if (courseState.stepIndex >= COURSE_WIZARD_STEPS.length) {
-            await bot.sendMessage(msg.chat.id, formatCourseWizardSummary(courseState.data));
+            await bot.sendMessage(msg.chat.id, formatCourseWizardSummary(courseState.data, 'ru'));
             await finishCourseWizard(msg.chat.id);
             return;
           }
@@ -882,7 +950,7 @@ if (bot) {
       courseState.stepIndex += 1;
 
       if (courseState.stepIndex >= COURSE_WIZARD_STEPS.length) {
-        await bot.sendMessage(msg.chat.id, formatCourseWizardSummary(courseState.data));
+        await bot.sendMessage(msg.chat.id, formatCourseWizardSummary(courseState.data, 'ru'));
         await finishCourseWizard(msg.chat.id);
         return;
       }
@@ -921,13 +989,27 @@ if (bot) {
         courseEditState.delete(msg.chat.id);
         await bot.sendMessage(msg.chat.id, 'Поле обновлено. Используйте /course_list для просмотра.');
       } catch (err) {
-        await bot.sendMessage(msg.chat.id, `Ошибка: ${err.message}`);
+        await bot.sendMessage(msg.chat.id, safeUserError(msg.chat.id));
       }
       return;
     }
 
     const state = formState.get(msg.chat.id);
     if (!state) return;
+
+    if (state.awaitingConfirmation) return;
+
+    if (state.data.source === 'OTHER_PENDING') {
+      state.data.source = msg.text.trim();
+      state.step += 1;
+      skipSavedPersonalSteps(state);
+      if (state.step < STEPS.length) {
+        await askCurrentStep(msg.chat.id);
+        return;
+      }
+      await showConfirmation(msg.chat.id);
+      return;
+    }
 
     const step = STEPS[state.step];
     if (OPTION_STEPS.includes(step)) {
