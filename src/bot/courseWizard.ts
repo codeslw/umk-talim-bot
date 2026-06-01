@@ -47,23 +47,22 @@ function chunk<T>(items: T[], size: number): T[][] {
   return rows;
 }
 
-function formatCourseWizardSummary(data: CourseWizardData): string {
-  const notSet = 'не указано';
-  const yes = 'да';
-  const no = 'нет';
+function formatCourseWizardSummary(data: CourseWizardData, lang = 'ru'): string {
+  const { TEXT } = require('./i18n');
+  const L = TEXT[lang]?.courseWizardLabels || TEXT.ru.courseWizardLabels;
 
   return [
-    'Предпросмотр курса:',
-    `Название: ${data.title}`,
-    `Изображение: ${data.imageFileId ? 'загружено' : notSet}`,
-    `Продолжительность: ${data.duration || notSet}`,
-    `Формат: ${COURSE_FORMAT_OPTIONS[String(data.format)] || data.format}`,
-    `Практика: ${data.hasPractice ? yes : no}`,
-    `Стоимость: ${data.cost || notSet}`,
-    `Оплата частями: ${data.canPayInInstallments ? yes : no}`,
-    `Возраст: ${data.ageMin}-${data.ageMax}`,
-    `Дополнительная информация: ${data.additionalInfo || notSet}`,
-    `Активен: ${data.isActive ? yes : no}`
+    L.preview,
+    `${L.title}: ${data.title}`,
+    `${L.image}: ${data.imageFileId ? L.uploaded : L.notSet}`,
+    `${L.duration}: ${data.duration || L.notSet}`,
+    `${L.format}: ${COURSE_FORMAT_OPTIONS[String(data.format)] || data.format}`,
+    `${L.practice}: ${data.hasPractice ? L.yes : L.no}`,
+    `${L.cost}: ${data.cost || L.notSet}`,
+    `${L.installments}: ${data.canPayInInstallments ? L.yes : L.no}`,
+    `${L.ageRange}: ${data.ageMin}-${data.ageMax}`,
+    `${L.additionalInfo}: ${data.additionalInfo || L.notSet}`,
+    `${L.active}: ${data.isActive ? L.yes : L.no}`
   ].join('\n');
 }
 
