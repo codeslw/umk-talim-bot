@@ -195,6 +195,10 @@ function getText(chatId) {
   return TEXT[getLang(chatId)];
 }
 
+function safeUserError(chatId): string {
+  return getText(chatId).error;
+}
+
 async function sendCourseWithImage(chatId, course, text, opts = {}) {
   if (course.imageFileId) {
     await bot.sendPhoto(chatId, course.imageFileId, {
@@ -800,9 +804,9 @@ if (bot) {
     await answerCallbackQuery(query.id, { text: 'Неизвестное действие.' });
     } catch (err) {
       logger.error('callback_query handler error', { err });
-      try { await answerCallbackQuery(query.id, { text: `Ошибка: ${err.message}` }); } catch (_) {}
+      try { await answerCallbackQuery(query.id, { text: 'Произошла ошибка.' }); } catch (_) {}
       if (chatId) {
-        try { await bot.sendMessage(chatId, `Произошла ошибка. Попробуйте /start ещё раз.\n${err.message}`); } catch (_) {}
+        try { await bot.sendMessage(chatId, safeUserError(chatId)); } catch (_) {}
       }
     }
   });
@@ -934,11 +938,15 @@ if (bot) {
     await saveAnswer(msg.chat.id, step, msg.text);
     } catch (err) {
       logger.error('message handler error', { err });
-      try { await bot.sendMessage(msg.chat.id, `Произошла ошибка: ${err.message}`); } catch (_) {}
+      try { await bot.sendMessage(msg.chat.id, safeUserError(msg.chat.id)); } catch (_) {}
     }
   });
 
   bot.onText(/\/stats/, async (msg) => {
+    if (!isBotAdminUser(msg.from)) {
+      await bot.sendMessage(msg.chat.id, 'Недостаточно прав.');
+      return;
+    }
     const stats = await getApplicationStats();
     await bot.sendMessage(msg.chat.id, getText(msg.chat.id).stats(stats.total));
   });
