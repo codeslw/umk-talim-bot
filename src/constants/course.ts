@@ -3,23 +3,27 @@ const COURSE_DEFAULTS = Object.freeze({
   ageMax: 45,
   hasPractice: false,
   canPayInInstallments: false,
-  isActive: true
+  isActive: true,
 });
 
 const COURSE_FORMAT_OPTIONS = Object.freeze({
-  ONLINE: 'Онлайн',
-  OFFLINE: 'Офлайн',
-  HYBRID: 'Смешанный'
+  ONLINE: "Онлайн",
+  OFFLINE: "Офлайн",
+  HYBRID: "Смешанный",
 });
-
-const COURSE_BOOLEAN_FIELDS = Object.freeze(['hasPractice', 'canPayInInstallments', 'isActive']);
-const COURSE_INTEGER_FIELDS = Object.freeze(['ageMin', 'ageMax']);
+//test deploy
+const COURSE_BOOLEAN_FIELDS = Object.freeze([
+  "hasPractice",
+  "canPayInInstallments",
+  "isActive",
+]);
+const COURSE_INTEGER_FIELDS = Object.freeze(["ageMin", "ageMax"]);
 const COURSE_OPTIONAL_FIELDS = Object.freeze([
-  'educationType',
-  'duration',
-  'cost',
-  'additionalInfo',
-  'imageFileId'
+  "educationType",
+  "duration",
+  "cost",
+  "additionalInfo",
+  "imageFileId",
 ]);
 
 module.exports = {
@@ -27,5 +31,5 @@ module.exports = {
   COURSE_FORMAT_OPTIONS,
   COURSE_BOOLEAN_FIELDS,
   COURSE_INTEGER_FIELDS,
-  COURSE_OPTIONAL_FIELDS
+  COURSE_OPTIONAL_FIELDS,
 };
