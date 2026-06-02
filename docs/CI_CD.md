@@ -39,25 +39,8 @@ On the server:
 
 The deploy workflow copies `deploy/docker-compose.prod.yml` and `deploy/nginx/default.conf` to the server automatically. Nginx listens on `${HTTP_PORT:-80}` and proxies to the app container. Database migrations run before the app is restarted.
 
-For the temporary self-signed HTTPS setup:
+The deploy workflow automatically creates temporary self-signed TLS certs in `${DEPLOY_PATH}/certs` when they are missing. Open:
 
-1. On the server, create certs:
-   ```bash
-   cd "${DEPLOY_PATH}"
-   mkdir -p certs
-   openssl req -x509 -nodes -newkey rsa:2048 \
-     -keyout certs/selfsigned.key \
-     -out certs/selfsigned.crt \
-     -days 365 \
-     -subj "/CN=localhost" \
-     -addext "subjectAltName=DNS:localhost,IP:127.0.0.1,IP:34.24.200.66"
-   chmod 600 certs/selfsigned.key
-   ```
-2. Restart the stack:
-   ```bash
-   docker compose --env-file .env.production -f docker-compose.prod.yml up -d
-   ```
-3. Open:
    ```text
    https://34.24.200.66/admin/
    ```

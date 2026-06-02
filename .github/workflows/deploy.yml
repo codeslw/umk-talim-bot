@@ -142,10 +142,22 @@ jobs:
             fi
 
             if [ ! -f certs/selfsigned.crt ] || [ ! -f certs/selfsigned.key ]; then
-              echo "Missing self-signed TLS certs in ${{ secrets.DEPLOY_PATH }}/certs"
-              echo "Generate them on the server with:"
-              echo "  mkdir -p certs && openssl req -x509 -nodes -newkey rsa:2048 -keyout certs/selfsigned.key -out certs/selfsigned.crt -days 365 -subj \"/CN=localhost\" -addext \"subjectAltName=DNS:localhost,IP:127.0.0.1,IP:34.24.200.66\""
-              exit 1
+              TLS_HOST="${{ secrets.DEPLOY_HOST }}"
+              if printf '%s' "$TLS_HOST" | grep -Eq '^[0-9]+(\.[0-9]+){3}$'; then
+                TLS_SAN="DNS:localhost,IP:127.0.0.1,IP:${TLS_HOST}"
+              else
+                TLS_SAN="DNS:localhost,DNS:${TLS_HOST},IP:127.0.0.1"
+              fi
+
+              mkdir -p certs
+              openssl req -x509 -nodes -newkey rsa:2048 \
+                -keyout certs/selfsigned.key \
+                -out certs/selfsigned.crt \
+                -days 365 \
+                -subj "/CN=${TLS_HOST}" \
+                -addext "subjectAltName=${TLS_SAN}"
+              chmod 600 certs/selfsigned.key
+              chmod 644 certs/selfsigned.crt
             fi
 
             if grep -q 'CHANGE_ME' .env.production; then
