@@ -622,8 +622,6 @@ export function App() {
     try {
       const ok = await api.health().catch(() => false);
       setHealth(ok ? 'healthy' : 'down');
-
-      if (!adminKey) return;
       const [nextMeta, nextSchemas, nextCourses, nextApplications, nextUsers, nextStats] = await Promise.all([
         api.meta(),
         api.schemas(),
@@ -643,7 +641,7 @@ export function App() {
     } finally {
       setLoading(false);
     }
-  }, [adminKey, api, t.common.loadError]);
+  }, [api, t.common.loadError]);
 
   useEffect(() => {
     void loadData();
