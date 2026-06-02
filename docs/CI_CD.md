@@ -12,7 +12,7 @@ This project uses GitHub Actions for CI and Docker Compose for production deploy
 
 ## Production Deploy
 
-`.github/workflows/deploy.yml` builds and pushes a Docker image to GitHub Container Registry, then connects to your server over SSH and restarts Docker Compose.
+`.github/workflows/deploy.yml` runs after the `CI` workflow succeeds on `main` or `master`. It builds and pushes a Docker image to GitHub Container Registry, then connects to your server over SSH and restarts Docker Compose. It can also be started manually with `workflow_dispatch`.
 
 Required GitHub repository secrets:
 
