@@ -1285,7 +1285,7 @@ function SchemasView({
                   </Field>
                   <Field className="md:col-span-2" label={t.schemas.placeholder}><Input value={question.placeholder || ''} onChange={(event) => updateQuestion(schemaName, index, { placeholder: event.target.value })} /></Field>
                   <Field className="md:col-span-2" label={t.schemas.helpText}><Input value={question.helpText || ''} onChange={(event) => updateQuestion(schemaName, index, { helpText: event.target.value })} /></Field>
-                  <Field className="md:col-span-2" label={t.schemas.options}><Input value={question.options.join(', ')} onChange={(event) => updateQuestion(schemaName, index, { options: event.target.value.split(',').map((item) => item.trim()).filter(Boolean) })} /></Field>
+                  <Field className="md:col-span-2" label={t.schemas.options}><Input value={(question.options || []).join(', ')} onChange={(event) => updateQuestion(schemaName, index, { options: event.target.value.split(',').map((item) => item.trim()).filter(Boolean) })} /></Field>
                   <div className="flex items-center justify-between md:col-span-2">
                     <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={question.required} onChange={(event) => updateQuestion(schemaName, index, { required: event.target.checked })} /> {t.schemas.required}</label>
                     <Button variant="destructive" size="sm" onClick={() => removeQuestion(schemaName, index)}><Trash2 className="h-4 w-4" /> {t.common.remove}</Button>
