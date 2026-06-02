@@ -17,8 +17,8 @@ import {
   UserRound,
   Users
 } from 'lucide-react';
-import { ApiClient, getStoredAdminKey, setStoredAdminKey } from '@/lib/api';
-import type { AdminMeta, Application, Course, DynamicSchemas, SchemaQuestion, Stats, User } from '@/lib/types';
+import { ApiClient } from '@/lib/api';
+import type { AdminMeta, AdminUser, Application, Course, DynamicSchemas, SchemaQuestion, Stats, User } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -83,11 +83,14 @@ const translations = {
     },
     common: {
       brandSubtitle: 'Панель управления',
-      connected: 'Ключ администратора подключен',
-      keyRequired: 'Нужен ключ администратора',
+      connected: 'Администратор вошел',
+      keyRequired: 'Нужен вход администратора',
       console: 'Консоль управления',
-      adminKey: 'Ключ администратора',
-      connect: 'Подключить',
+      adminKey: 'Пароль',
+      connect: 'Войти',
+      logout: 'Выйти',
+      username: 'Логин',
+      bootstrap: 'Создать администратора',
       save: 'Сохранить',
       cancel: 'Отмена',
       edit: 'Изменить',
@@ -246,11 +249,14 @@ const translations = {
     },
     common: {
       brandSubtitle: 'Boshqaruv paneli',
-      connected: 'Admin kaliti ulangan',
-      keyRequired: 'Admin kaliti kerak',
+      connected: 'Admin tizimga kirdi',
+      keyRequired: 'Admin kirishi kerak',
       console: 'Boshqaruv konsoli',
-      adminKey: 'Admin API kaliti',
-      connect: 'Ulanish',
+      adminKey: 'Parol',
+      connect: 'Kirish',
+      logout: 'Chiqish',
+      username: 'Login',
+      bootstrap: 'Admin yaratish',
       save: 'Saqlash',
       cancel: 'Bekor qilish',
       edit: 'Tahrirlash',
@@ -409,11 +415,14 @@ const translations = {
     },
     common: {
       brandSubtitle: 'Admin dashboard',
-      connected: 'Connected with admin key',
-      keyRequired: 'Admin key required',
+      connected: 'Admin signed in',
+      keyRequired: 'Admin login required',
       console: 'Management console',
-      adminKey: 'Admin API key',
-      connect: 'Connect',
+      adminKey: 'Password',
+      connect: 'Sign in',
+      logout: 'Logout',
+      username: 'Username',
+      bootstrap: 'Create admin',
       save: 'Save',
       cancel: 'Cancel',
       edit: 'Edit',
@@ -587,8 +596,10 @@ function getCheckbox(form: HTMLFormElement, name: string) {
 export function App() {
   const [view, setView] = useState<View>('overview');
   const [lang, setLang] = useState<Lang>(getStoredLang);
-  const [adminKey, setAdminKey] = useState(getStoredAdminKey);
-  const [keyInput, setKeyInput] = useState(getStoredAdminKey);
+  const [authUser, setAuthUser] = useState<AdminUser | null>(null);
+  const [needsBootstrap, setNeedsBootstrap] = useState(false);
+  const [loginUsername, setLoginUsername] = useState('admin');
+  const [loginPassword, setLoginPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [health, setHealth] = useState<'unknown' | 'healthy' | 'down'>('unknown');
@@ -604,7 +615,7 @@ export function App() {
   const [courseFilter, setCourseFilter] = useState('');
   const [editor, setEditor] = useState<Editor>(null);
 
-  const api = useMemo(() => new ApiClient(() => adminKey), [adminKey]);
+  const api = useMemo(() => new ApiClient(), []);
   const t = translations[lang];
 
   const showMessage = (text: string) => {
@@ -622,6 +633,10 @@ export function App() {
     try {
       const ok = await api.health().catch(() => false);
       setHealth(ok ? 'healthy' : 'down');
+      const authStatus = await api.authStatus();
+      setAuthUser(authStatus.user);
+      setNeedsBootstrap(authStatus.needsBootstrap);
+      if (!authStatus.user) return;
       const [nextMeta, nextSchemas, nextCourses, nextApplications, nextUsers, nextStats] = await Promise.all([
         api.meta(),
         api.schemas(),
@@ -657,9 +672,24 @@ export function App() {
   const maxStatusCount = Math.max(1, ...Array.from(statusCounts.values()));
 
   async function connect() {
-    setStoredAdminKey(keyInput.trim());
-    setAdminKey(keyInput.trim());
-    showMessage(t.common.savedKey);
+    const payload = { username: loginUsername.trim(), password: loginPassword };
+    const result = needsBootstrap
+      ? await api.bootstrap({ ...payload, displayName: loginUsername.trim() })
+      : await api.login(payload);
+    setAuthUser(result.user);
+    setLoginPassword('');
+    showMessage(needsBootstrap ? t.common.bootstrap : t.common.connected);
+    await loadData();
+  }
+
+  async function logout() {
+    await api.logout();
+    setAuthUser(null);
+    setCourses([]);
+    setApplications([]);
+    setUsers([]);
+    setStats(null);
+    setSchemas(null);
   }
 
   async function saveCourse(form: HTMLFormElement) {
@@ -801,7 +831,7 @@ export function App() {
           ))}
         </nav>
         <div className="mt-auto rounded-lg border border-white/10 p-3 text-sm text-white/65">
-          {adminKey ? t.common.connected : t.common.keyRequired}
+          {authUser ? `${t.common.connected}: ${authUser.username}` : t.common.keyRequired}
         </div>
       </aside>
 
@@ -819,8 +849,18 @@ export function App() {
                   {languages.map((language) => <option key={language.value} value={language.value}>{language.label}</option>)}
                 </NativeSelect>
               </div>
-              <Input className="w-64" type="password" value={keyInput} onChange={(event) => setKeyInput(event.target.value)} placeholder={t.common.adminKey} />
-              <Button onClick={connect}>{t.common.connect}</Button>
+              {authUser ? (
+                <>
+                  <Badge variant="secondary">{authUser.username}</Badge>
+                  <Button variant="outline" onClick={logout}>{t.common.logout}</Button>
+                </>
+              ) : (
+                <>
+                  <Input className="w-36" value={loginUsername} onChange={(event) => setLoginUsername(event.target.value)} placeholder={t.common.username} />
+                  <Input className="w-44" type="password" value={loginPassword} onChange={(event) => setLoginPassword(event.target.value)} placeholder={t.common.adminKey} />
+                  <Button onClick={connect}>{needsBootstrap ? t.common.bootstrap : t.common.connect}</Button>
+                </>
+              )}
               <Button variant="outline" size="icon" onClick={loadData} disabled={loading}>
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
               </Button>
@@ -914,7 +954,7 @@ export function App() {
           {view === 'schemas' && schemas && (
             <SchemasView schemas={schemas} setSchemas={setSchemas} meta={meta} onSave={saveSchemas} t={t} />
           )}
-          {view === 'bot' && <BotView health={health} adminKey={adminKey} setView={setView} t={t} />}
+          {view === 'bot' && <BotView health={health} authUser={authUser} setView={setView} t={t} />}
         </div>
       </main>
 
@@ -1261,14 +1301,14 @@ function SchemasView({
   );
 }
 
-function BotView({ health, adminKey, setView, t }: { health: string; adminKey: string; setView: (view: View) => void; t: Translation }) {
+function BotView({ health, authUser, setView, t }: { health: string; authUser: AdminUser | null; setView: (view: View) => void; t: Translation }) {
   return (
     <div className="grid gap-5 xl:grid-cols-2">
       <Card>
         <CardHeader><CardTitle>{t.bot.health}</CardTitle><CardDescription>{t.bot.healthDescription}</CardDescription></CardHeader>
         <CardContent className="grid grid-cols-[150px_1fr] gap-4">
           <span className="text-muted-foreground">{t.bot.apiHealth}</span><Badge variant={health === 'healthy' ? 'default' : 'destructive'}>{health === 'healthy' ? t.common.healthy : health === 'down' ? t.common.down : t.common.unknown}</Badge>
-          <span className="text-muted-foreground">{t.bot.protectedApi}</span><Badge variant={adminKey ? 'default' : 'secondary'}>{adminKey ? t.common.connected : t.bot.waitingKey}</Badge>
+          <span className="text-muted-foreground">{t.bot.protectedApi}</span><Badge variant={authUser ? 'default' : 'secondary'}>{authUser ? t.common.connected : t.bot.waitingKey}</Badge>
           <span className="text-muted-foreground">{t.bot.excel}</span><strong>{t.bot.available}</strong>
           <span className="text-muted-foreground">{t.bot.notifications}</span><strong>{t.bot.configured}</strong>
         </CardContent>

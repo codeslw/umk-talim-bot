@@ -1,6 +1,6 @@
 require('dotenv').config();
 
-const required = ['DATABASE_URL', 'ADMIN_API_KEY'];
+const required = ['DATABASE_URL'];
 for (const key of required) {
   if (!process.env[key]) {
     throw new Error(`Missing required env var: ${key}`);
@@ -38,7 +38,8 @@ module.exports = {
     .split(',')
     .map((v) => v.trim())
     .filter(Boolean),
-  adminApiKey: process.env.ADMIN_API_KEY,
+  adminApiKey: process.env.ADMIN_API_KEY || '',
+  adminSessionSecret: process.env.ADMIN_SESSION_SECRET || process.env.ADMIN_API_KEY || 'local-dev-admin-session-secret',
   applicationsChannelId: normalizeTelegramChatId(process.env.APPLICATIONS_CHANNEL_ID),
   baseUrl: process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}`,
   logLevel: process.env.LOG_LEVEL || 'info',

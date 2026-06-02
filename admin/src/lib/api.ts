@@ -1,29 +1,17 @@
-import type { AdminMeta, Application, Course, DynamicSchemas, Stats, User } from './types';
+import type { AdminMeta, Application, AuthStatus, Course, DynamicSchemas, Stats, User } from './types';
 
-const ADMIN_KEY_STORAGE = 'umkAdminKey';
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
-export function getStoredAdminKey() {
-  return localStorage.getItem(ADMIN_KEY_STORAGE) || '';
-}
-
-export function setStoredAdminKey(key: string) {
-  if (key) localStorage.setItem(ADMIN_KEY_STORAGE, key);
-  else localStorage.removeItem(ADMIN_KEY_STORAGE);
-}
-
 export class ApiClient {
-  constructor(private readonly getAdminKey: () => string) {}
-
   async request<T>(path: string, options: RequestInit = {}): Promise<T> {
     const headers = new Headers(options.headers || {});
-    headers.set('x-admin-key', this.getAdminKey());
     if (!(options.body instanceof FormData) && !headers.has('Content-Type')) {
       headers.set('Content-Type', 'application/json');
     }
     const response = await fetch(new URL(path, API_BASE_URL || window.location.origin).toString(), {
       ...options,
-      headers
+      headers,
+      credentials: 'include'
     });
     if (response.status === 204) return null as T;
     const body = await response.json().catch(() => ({}));
@@ -32,9 +20,17 @@ export class ApiClient {
   }
 
   health() {
-    return fetch(new URL('/health', API_BASE_URL || window.location.origin).toString()).then((response) => response.ok);
+    return fetch(new URL('/health', API_BASE_URL || window.location.origin).toString(), { credentials: 'include' }).then((response) => response.ok);
   }
 
+  authStatus() { return this.request<AuthStatus>('/api/auth/me'); }
+  bootstrap(payload: { username: string; password: string; displayName?: string }) {
+    return this.request<{ user: AuthStatus['user'] }>('/api/auth/bootstrap', { method: 'POST', body: JSON.stringify(payload) });
+  }
+  login(payload: { username: string; password: string }) {
+    return this.request<{ user: AuthStatus['user'] }>('/api/auth/login', { method: 'POST', body: JSON.stringify(payload) });
+  }
+  logout() { return this.request<void>('/api/auth/logout', { method: 'POST' }); }
   meta() { return this.request<AdminMeta>('/api/settings/meta'); }
   schemas() { return this.request<DynamicSchemas>('/api/settings/schemas'); }
   saveSchemas(payload: DynamicSchemas) {

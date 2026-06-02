@@ -91,3 +91,15 @@ export type DynamicSchemas = {
   course: ManagedSchema;
   application: ManagedSchema;
 };
+
+export type AdminUser = {
+  id: number;
+  username: string;
+  displayName?: string | null;
+  isActive: boolean;
+};
+
+export type AuthStatus = {
+  user: AdminUser | null;
+  needsBootstrap: boolean;
+};
