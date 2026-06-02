@@ -21,10 +21,13 @@ Required GitHub repository secrets:
 - `DEPLOY_PORT`
 - `DEPLOY_PATH`
 - `DEPLOY_SSH_PRIVATE_KEY`
+- `DEPLOY_SSH_PASSPHRASE` if the private key is passphrase protected. Leave it unset when using a deploy key without a passphrase.
 - `GHCR_USERNAME`
 - `GHCR_TOKEN`
 
 Do not commit env files. Use the variable names above and add values directly in GitHub repository secrets.
+
+SSH key note: GitHub Actions cannot prompt for a passphrase. Either add `DEPLOY_SSH_PASSPHRASE` as a repository secret or create a dedicated server deploy key without a passphrase and restrict that key on the server.
 
 On the server:
 
