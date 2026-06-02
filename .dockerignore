@@ -1,7 +1,8 @@
 node_modules
 dist
 admin/dist
+.git
+deploy/certs
 .env
 .env.*
-.git
 src/logs/*.log

@@ -84,7 +84,7 @@ jobs:
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           script: |
             set -euo pipefail
-            mkdir -p "${{ secrets.DEPLOY_PATH }}/nginx"
+            mkdir -p "${{ secrets.DEPLOY_PATH }}/nginx" "${{ secrets.DEPLOY_PATH }}/certs"
 
       - name: Copy deploy files
         uses: appleboy/scp-action@v0.1.7
@@ -115,6 +115,7 @@ jobs:
               cat > .env.production <<'EOF'
             APP_IMAGE=${{ needs.build-and-push.outputs.image }}
             HTTP_PORT=80
+            HTTPS_PORT=443
 
             POSTGRES_DB=course_bot
             POSTGRES_USER=postgres
@@ -137,6 +138,13 @@ jobs:
             EOF
               chmod 600 .env.production
               echo "Created ${{ secrets.DEPLOY_PATH }}/.env.production with placeholders. Replace CHANGE_ME values on the server, then rerun this workflow."
+              exit 1
+            fi
+
+            if [ ! -f certs/selfsigned.crt ] || [ ! -f certs/selfsigned.key ]; then
+              echo "Missing self-signed TLS certs in ${{ secrets.DEPLOY_PATH }}/certs"
+              echo "Generate them on the server with:"
+              echo "  mkdir -p certs && openssl req -x509 -nodes -newkey rsa:2048 -keyout certs/selfsigned.key -out certs/selfsigned.crt -days 365 -subj \"/CN=localhost\" -addext \"subjectAltName=DNS:localhost,IP:127.0.0.1,IP:34.24.200.66\""
               exit 1
             fi
 
