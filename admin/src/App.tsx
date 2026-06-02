@@ -204,6 +204,7 @@ const translations = {
       duration: 'Длительность',
       cost: 'Стоимость',
       imageFileId: 'ID изображения',
+      imageUpload: 'Загрузить изображение',
       ageMin: 'Минимальный возраст',
       ageMax: 'Максимальный возраст',
       hasPractice: 'Есть практика',
@@ -366,6 +367,7 @@ const translations = {
       duration: 'Davomiylik',
       cost: 'Narx',
       imageFileId: 'Rasm file ID',
+      imageUpload: 'Rasm yuklash',
       ageMin: 'Minimal yosh',
       ageMax: 'Maksimal yosh',
       hasPractice: 'Amaliyot bor',
@@ -528,6 +530,7 @@ const translations = {
       duration: 'Duration',
       cost: 'Cost',
       imageFileId: 'Image file ID',
+      imageUpload: 'Upload image',
       ageMin: 'Minimum age',
       ageMax: 'Maximum age',
       hasPractice: 'Has practice',
@@ -662,6 +665,12 @@ export function App() {
   }
 
   async function saveCourse(form: HTMLFormElement) {
+    const imageInput = form.elements.namedItem('courseImage') as HTMLInputElement | null;
+    let imageFileId = getFormValue(form, 'imageFileId') || null;
+    if (imageInput?.files?.length) {
+      const uploadResult = await api.uploadCourseImage(imageInput.files[0]);
+      imageFileId = uploadResult.fileId;
+    }
     const payload = {
       title: getFormValue(form, 'title'),
       educationType: getFormValue(form, 'educationType') || null,
@@ -673,7 +682,7 @@ export function App() {
       ageMin: Number(getFormValue(form, 'ageMin') || 18),
       ageMax: Number(getFormValue(form, 'ageMax') || 45),
       additionalInfo: getFormValue(form, 'additionalInfo') || null,
-      imageFileId: getFormValue(form, 'imageFileId') || null,
+      imageFileId,
       isActive: getCheckbox(form, 'isActive')
     };
     if (editor?.type === 'course' && editor.item) await api.updateCourse(editor.item.id, payload);
@@ -1323,6 +1332,9 @@ function CourseForm({ course, meta, t }: { course?: Course; meta: AdminMeta; t: 
       <Field label={t.form.duration}><Input name="duration" defaultValue={course?.duration || ''} /></Field>
       <Field label={t.form.cost}><Input name="cost" defaultValue={course?.cost || ''} /></Field>
       <Field label={t.form.imageFileId}><Input name="imageFileId" defaultValue={course?.imageFileId || ''} /></Field>
+      <Field label={t.form.imageUpload}>
+        <Input name="courseImage" type="file" accept="image/*" />
+      </Field>
       <Field label={t.form.ageMin}><Input name="ageMin" type="number" defaultValue={course?.ageMin ?? 18} /></Field>
       <Field label={t.form.ageMax}><Input name="ageMax" type="number" defaultValue={course?.ageMax ?? 45} /></Field>
       <label className="flex items-center gap-2 text-sm font-medium"><input name="hasPractice" type="checkbox" defaultChecked={course?.hasPractice || false} /> {t.form.hasPractice}</label>

@@ -1,4 +1,14 @@
+const fs = require('fs');
+const path = require('path');
+const multer = require('multer');
 const { createCourse, deleteCourse, listActiveCourses, listAllCourses, updateCourse } = require('../services/course.service');
+
+const uploadsDir = path.resolve(process.cwd(), 'uploads/course-images');
+fs.mkdirSync(uploadsDir, { recursive: true });
+const upload = multer({
+  dest: uploadsDir,
+  limits: { fileSize: 8 * 1024 * 1024 }
+});
 
 async function getCourses(req, res) {
   const includeInactive = String(req.query.includeInactive || '') === 'true';
@@ -32,4 +42,20 @@ async function removeCourse(req, res) {
   });
 }
 
-module.exports = { getCourses, postCourse, patchCourse, removeCourse };
+function uploadCourseImage(req, res, next) {
+  upload.single('image')(req, res, (err) => {
+    if (err) return next(err);
+    if (!req.file) {
+      res.status(400).json({ error: 'Image file is required' });
+      return;
+    }
+
+    const ext = path.extname(req.file.originalname || '').toLowerCase();
+    const finalPath = ext && !req.file.path.endsWith(ext) ? `${req.file.path}${ext}` : req.file.path;
+    if (finalPath !== req.file.path) fs.renameSync(req.file.path, finalPath);
+
+    res.status(201).json({ data: { fileId: finalPath } });
+  });
+}
+
+module.exports = { getCourses, postCourse, patchCourse, removeCourse, uploadCourseImage };

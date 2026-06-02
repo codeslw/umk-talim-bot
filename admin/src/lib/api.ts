@@ -14,16 +14,13 @@ export function setStoredAdminKey(key: string) {
 export class ApiClient {
   constructor(private readonly getAdminKey: () => string) {}
 
-  private headers(extra?: HeadersInit) {
-    return {
-      'Content-Type': 'application/json',
-      'x-admin-key': this.getAdminKey(),
-      ...extra
-    };
-  }
-
   async request<T>(path: string, options: RequestInit = {}): Promise<T> {
-    const response = await fetch(path, { ...options, headers: this.headers(options.headers) });
+    const headers = new Headers(options.headers || {});
+    headers.set('x-admin-key', this.getAdminKey());
+    if (!(options.body instanceof FormData) && !headers.has('Content-Type')) {
+      headers.set('Content-Type', 'application/json');
+    }
+    const response = await fetch(path, { ...options, headers });
     if (response.status === 204) return null as T;
     const body = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(body.error || `Request failed with ${response.status}`);
@@ -42,6 +39,11 @@ export class ApiClient {
   courses() { return this.request<Course[]>('/api/courses?includeInactive=true'); }
   createCourse(payload: Partial<Course>) {
     return this.request<Course>('/api/courses', { method: 'POST', body: JSON.stringify(payload) });
+  }
+  uploadCourseImage(file: File) {
+    const formData = new FormData();
+    formData.append('image', file);
+    return this.request<{ fileId: string }>('/api/courses/image', { method: 'POST', body: formData });
   }
   updateCourse(id: number, payload: Partial<Course>) {
     return this.request<Course>(`/api/courses/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });

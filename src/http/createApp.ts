@@ -1,5 +1,6 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const helmet = require('helmet');
 const cors = require('cors');
 const compression = require('compression');
@@ -10,6 +11,9 @@ const { errorHandler } = require('../middlewares/errorHandler');
 const { notFound } = require('../middlewares/notFound');
 
 const adminAssetsPath = path.resolve(process.cwd(), 'admin/dist');
+const uploadsPath = path.resolve(process.cwd(), 'uploads');
+
+fs.mkdirSync(uploadsPath, { recursive: true });
 
 function createApp() {
   const app = express();
@@ -21,6 +25,7 @@ function createApp() {
   app.use(rateLimit({ windowMs: 15 * 60 * 1000, limit: 200 }));
 
   app.get('/health', (req, res) => res.json({ status: 'ok' }));
+  app.use('/uploads', express.static(uploadsPath));
   app.use('/admin', express.static(adminAssetsPath));
   app.get('/admin/*', (req, res, next) => {
     res.sendFile(path.join(adminAssetsPath, 'index.html'), (err) => {
