@@ -29,6 +29,21 @@ async function updateApplicationStatus(id, status) {
   return { ...updated, previousStatus: current?.status || null };
 }
 
+async function updateApplication(id, payload) {
+  return prisma.application.update({
+    where: { id },
+    data: payload,
+    include: { user: true, course: true }
+  });
+}
+
+async function deleteApplication(id) {
+  return prisma.application.delete({
+    where: { id },
+    include: { user: true, course: true }
+  });
+}
+
 async function updateApplicationNotificationReference(id, reference) {
   return prisma.application.update({
     where: { id },
@@ -54,7 +69,9 @@ async function statistics() {
 module.exports = {
   createApplication,
   listApplications,
+  updateApplication,
   updateApplicationStatus,
+  deleteApplication,
   updateApplicationNotificationReference,
   statistics
 };

@@ -4,6 +4,5 @@ admin/dist
 .env
 .env.*
 !.env.example
-!deploy/.env.production.example
-!deploy/.env.github-secrets.example
+.git
 src/logs/*.log

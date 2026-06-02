@@ -2,8 +2,10 @@ const { buildApplicationsWorkbook } = require('../services/excel.service');
 const {
   changeApplicationStatus,
   createCourseApplication,
+  editApplication,
   getApplications,
-  getApplicationStats
+  getApplicationStats,
+  removeApplication
 } = require('../services/application.service');
 const { applicationSchema } = require('../validators/application.validator');
 
@@ -36,6 +38,16 @@ async function patchApplicationStatus(req, res) {
   res.json({ data: application });
 }
 
+async function patchApplication(req, res) {
+  const application = await editApplication(req.params.id, req.body);
+  res.json({ data: application });
+}
+
+async function deleteApplicationController(req, res) {
+  await removeApplication(req.params.id);
+  res.status(204).send();
+}
+
 async function getStats(req, res) {
   res.json({ data: await getApplicationStats() });
 }
@@ -56,7 +68,9 @@ async function exportExcel(req, res) {
 module.exports = {
   postApplication,
   getApplications: getApplicationsController,
+  patchApplication,
   patchApplicationStatus,
+  deleteApplication: deleteApplicationController,
   getStats,
   exportExcel
 };

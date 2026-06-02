@@ -1,6 +1,8 @@
 const {
   createApplication,
+  deleteApplication,
   listApplications,
+  updateApplication,
   updateApplicationStatus,
   updateApplicationNotificationReference,
   statistics
@@ -68,6 +70,32 @@ function toApplicationCreateData(payload, userId) {
   };
 }
 
+function normalizeApplicationUpdatePayload(payload = {}) {
+  const allowedFields = [
+    'courseId',
+    'experience',
+    'workplace',
+    'educationType',
+    'specialization',
+    'learningGoal',
+    'studyFormat',
+    'studyTime',
+    'source',
+    'comment',
+    'status'
+  ];
+  const data: Record<string, any> = {};
+
+  for (const field of allowedFields) {
+    if (payload[field] !== undefined) data[field] = payload[field] === '' ? null : payload[field];
+  }
+
+  if (data.courseId !== undefined) data.courseId = Number(data.courseId);
+  if (data.status !== undefined) assertValidApplicationStatus(data.status);
+
+  return data;
+}
+
 async function createCourseApplication(payload, notificationContext: NotificationContext = {}) {
   const age = payload.age || calculateAge(payload.birthDate);
   const user = await upsertTelegramUser({ ...payload, age });
@@ -119,6 +147,14 @@ function getApplications(query = {}) {
   return listApplications(buildApplicationFilters(query));
 }
 
+function editApplication(id, payload) {
+  return updateApplication(Number(id), normalizeApplicationUpdatePayload(payload));
+}
+
+function removeApplication(id) {
+  return deleteApplication(Number(id));
+}
+
 function getApplicationStats() {
   return statistics();
 }
@@ -128,6 +164,8 @@ module.exports = {
   buildApplicationFilters,
   createCourseApplication,
   changeApplicationStatus,
+  editApplication,
+  removeApplication,
   getApplications,
   getApplicationStats,
   findUserByTelegramId

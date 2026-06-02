@@ -25,7 +25,41 @@ function upsertTelegramUser(data) {
   });
 }
 
+function listUsers(filters: Record<string, any> = {}) {
+  const where: Record<string, any> = {};
+  if (filters.search) {
+    where.OR = [
+      { fullName: { contains: String(filters.search), mode: 'insensitive' } },
+      { username: { contains: String(filters.search), mode: 'insensitive' } },
+      { phone: { contains: String(filters.search), mode: 'insensitive' } },
+      { city: { contains: String(filters.search), mode: 'insensitive' } },
+      { telegramId: { contains: String(filters.search), mode: 'insensitive' } }
+    ];
+  }
+
+  return prisma.user.findMany({
+    where,
+    include: { _count: { select: { applications: true } } },
+    orderBy: { createdAt: 'desc' }
+  });
+}
+
+function updateUser(id, payload) {
+  return prisma.user.update({
+    where: { id },
+    data: payload,
+    include: { _count: { select: { applications: true } } }
+  });
+}
+
+function deleteUser(id) {
+  return prisma.user.delete({ where: { id } });
+}
+
 module.exports = {
   findUserByTelegramId,
+  listUsers,
+  updateUser,
+  deleteUser,
   upsertTelegramUser
 };

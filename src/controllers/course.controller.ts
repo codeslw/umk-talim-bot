@@ -1,13 +1,19 @@
-const { createCourse, deleteCourse, listActiveCourses } = require('../services/course.service');
+const { createCourse, deleteCourse, listActiveCourses, listAllCourses, updateCourse } = require('../services/course.service');
 
 async function getCourses(req, res) {
-  const courses = await listActiveCourses();
+  const includeInactive = String(req.query.includeInactive || '') === 'true';
+  const courses = includeInactive ? await listAllCourses() : await listActiveCourses();
   res.json({ data: courses });
 }
 
 async function postCourse(req, res) {
   const course = await createCourse(req.body);
   res.status(201).json({ data: course });
+}
+
+async function patchCourse(req, res) {
+  const course = await updateCourse(req.params.id, req.body);
+  res.json({ data: course });
 }
 
 async function removeCourse(req, res) {
@@ -26,4 +32,4 @@ async function removeCourse(req, res) {
   });
 }
 
-module.exports = { getCourses, postCourse, removeCourse };
+module.exports = { getCourses, postCourse, patchCourse, removeCourse };

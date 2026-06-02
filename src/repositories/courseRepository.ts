@@ -1,7 +1,11 @@
 const prisma = require('../config/prisma');
 
 async function listActiveCourses() {
-  return prisma.course.findMany({ where: { isActive: true }, orderBy: { createdAt: 'asc' } });
+  return prisma.course.findMany({
+    where: { isActive: true },
+    include: { _count: { select: { applications: true } } },
+    orderBy: { createdAt: 'asc' }
+  });
 }
 
 async function createCourse(data) {
@@ -21,7 +25,10 @@ async function getActiveCourseById(id) {
 }
 
 async function listAllCourses() {
-  return prisma.course.findMany({ orderBy: { createdAt: 'desc' } });
+  return prisma.course.findMany({
+    include: { _count: { select: { applications: true } } },
+    orderBy: { createdAt: 'desc' }
+  });
 }
 
 async function deleteCourse(id) {
