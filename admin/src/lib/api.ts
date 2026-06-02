@@ -1,6 +1,7 @@
 import type { AdminMeta, Application, Course, DynamicSchemas, Stats, User } from './types';
 
 const ADMIN_KEY_STORAGE = 'umkAdminKey';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 export function getStoredAdminKey() {
   return localStorage.getItem(ADMIN_KEY_STORAGE) || '';
@@ -20,7 +21,10 @@ export class ApiClient {
     if (!(options.body instanceof FormData) && !headers.has('Content-Type')) {
       headers.set('Content-Type', 'application/json');
     }
-    const response = await fetch(path, { ...options, headers });
+    const response = await fetch(new URL(path, API_BASE_URL || window.location.origin).toString(), {
+      ...options,
+      headers
+    });
     if (response.status === 204) return null as T;
     const body = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(body.error || `Request failed with ${response.status}`);
@@ -28,7 +32,7 @@ export class ApiClient {
   }
 
   health() {
-    return fetch('/health').then((response) => response.ok);
+    return fetch(new URL('/health', API_BASE_URL || window.location.origin).toString()).then((response) => response.ok);
   }
 
   meta() { return this.request<AdminMeta>('/api/settings/meta'); }
