@@ -3,6 +3,5 @@ dist
 admin/dist
 .env
 .env.*
-!.env.example
 .git
 src/logs/*.log

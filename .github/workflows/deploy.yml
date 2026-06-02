@@ -63,14 +63,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Copy compose file
+      - name: Prepare remote directory
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          script: |
+            set -euo pipefail
+            mkdir -p "${{ secrets.DEPLOY_PATH }}/nginx"
+
+      - name: Copy deploy files
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
-          source: deploy/docker-compose.prod.yml
+          source: deploy/docker-compose.prod.yml,deploy/nginx/default.conf
           target: ${{ secrets.DEPLOY_PATH }}
           strip_components: 1
 
@@ -87,7 +98,36 @@ jobs:
             cd "${{ secrets.DEPLOY_PATH }}"
 
             if [ ! -f .env.production ]; then
-              echo "Missing .env.production on the server. Copy deploy/.env.production.example to ${{ secrets.DEPLOY_PATH }}/.env.production and replace placeholders."
+              cat > .env.production <<'EOF'
+            APP_IMAGE=${{ needs.build-and-push.outputs.image }}
+            HTTP_PORT=80
+
+            POSTGRES_DB=course_bot
+            POSTGRES_USER=postgres
+            POSTGRES_PASSWORD=CHANGE_ME_STRONG_DATABASE_PASSWORD
+            DATABASE_URL=postgresql://postgres:CHANGE_ME_STRONG_DATABASE_PASSWORD@postgres:5432/course_bot?schema=public
+
+            PORT=3000
+            BOT_TOKEN=CHANGE_ME_TELEGRAM_BOT_TOKEN
+            ADMIN_IDS=CHANGE_ME_TELEGRAM_ADMIN_ID_1,CHANGE_ME_TELEGRAM_ADMIN_ID_2
+            ADMIN_USERNAMES=CHANGE_ME_ADMIN_USERNAME_1,CHANGE_ME_ADMIN_USERNAME_2
+            ADMIN_API_KEY=CHANGE_ME_LONG_RANDOM_ADMIN_API_KEY
+            APPLICATIONS_CHANNEL_ID=CHANGE_ME_CHANNEL_ID_OR_USERNAME
+            BASE_URL=https://CHANGE_ME_DOMAIN
+            LOG_LEVEL=info
+            CRON_TIME=0 9 * * *
+            TELEGRAM_POLLING_INTERVAL=1000
+            TELEGRAM_POLLING_TIMEOUT=20
+            TELEGRAM_REQUEST_TIMEOUT=20000
+            TELEGRAM_POLLING_ENABLED=true
+            EOF
+              chmod 600 .env.production
+              echo "Created ${{ secrets.DEPLOY_PATH }}/.env.production with placeholders. Replace CHANGE_ME values on the server, then rerun this workflow."
+              exit 1
+            fi
+
+            if grep -q 'CHANGE_ME' .env.production; then
+              echo ".env.production still contains CHANGE_ME placeholders. Replace them on the server, then rerun this workflow."
               exit 1
             fi
 

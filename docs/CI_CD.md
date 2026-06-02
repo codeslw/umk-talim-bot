@@ -24,14 +24,16 @@ Required GitHub repository secrets:
 - `GHCR_USERNAME`
 - `GHCR_TOKEN`
 
-Use `deploy/.env.github-secrets.example` as the placeholder source for these values.
+Do not commit env files. Use the variable names above and add values directly in GitHub repository secrets.
 
 On the server:
 
 1. Install Docker and Docker Compose.
-2. Create the deploy directory, for example `/opt/umk-talim-bot`.
-3. Copy `deploy/.env.production.example` to `/opt/umk-talim-bot/.env.production`.
-4. Replace every `CHANGE_ME` value.
-5. Run the `Deploy` workflow manually once from GitHub Actions.
+2. Run the `Deploy` workflow manually once from GitHub Actions. If the deploy directory does not exist, the workflow creates it.
+3. On the first run, the workflow creates `.env.production` with placeholder values and stops.
+4. SSH into the server, edit `${DEPLOY_PATH}/.env.production`, and replace every `CHANGE_ME` value.
+5. Run the `Deploy` workflow again.
 
-The deploy workflow copies `deploy/docker-compose.prod.yml` to the server automatically. Database migrations run before the app is restarted.
+The deploy workflow copies `deploy/docker-compose.prod.yml` and `deploy/nginx/default.conf` to the server automatically. Nginx listens on `${HTTP_PORT:-80}` and proxies to the app container. Database migrations run before the app is restarted.
+
+For HTTPS, put a TLS terminator in front of this nginx service or extend `deploy/nginx/default.conf` with certificates mounted from the host.
