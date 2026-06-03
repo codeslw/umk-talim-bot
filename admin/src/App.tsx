@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Activity,
+  Bell,
   BookOpen,
   Bot,
   ClipboardList,
@@ -8,6 +9,7 @@ import {
   Languages,
   LayoutDashboard,
   Loader2,
+  Mail,
   PanelLeftClose,
   PanelLeftOpen,
   Plus,
@@ -15,7 +17,9 @@ import {
   Save,
   Search,
   Settings2,
+  ShieldCheck,
   Trash2,
+  UserPlus,
   UserRound,
   Users
 } from 'lucide-react';
@@ -39,7 +43,7 @@ import { NativeSelect } from '@/components/ui/native-select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 
-type View = 'overview' | 'courses' | 'applications' | 'users' | 'schemas' | 'bot';
+type View = 'overview' | 'courses' | 'applications' | 'users' | 'admins' | 'schemas' | 'bot';
 type Lang = 'ru' | 'uz' | 'en';
 type Editor =
   | { type: 'course'; item?: Course }
@@ -63,6 +67,7 @@ const navItems: Array<{ view: View; labelKey: View; icon: typeof LayoutDashboard
   { view: 'courses', labelKey: 'courses', icon: BookOpen },
   { view: 'applications', labelKey: 'applications', icon: ClipboardList },
   { view: 'users', labelKey: 'users', icon: Users },
+  { view: 'admins', labelKey: 'admins', icon: ShieldCheck },
   { view: 'schemas', labelKey: 'schemas', icon: Settings2 },
   { view: 'bot', labelKey: 'bot', icon: Bot }
 ];
@@ -80,6 +85,7 @@ const translations = {
       courses: 'Курсы',
       applications: 'Заявки',
       users: 'Клиенты',
+      admins: 'Администраторы',
       schemas: 'Настройки схем',
       bot: 'Операции бота'
     },
@@ -89,10 +95,12 @@ const translations = {
       keyRequired: 'Нужен вход администратора',
       console: 'Консоль управления',
       adminKey: 'Пароль',
+      displayName: 'Имя',
       connect: 'Войти',
       logout: 'Выйти',
       username: 'Логин',
       bootstrap: 'Создать администратора',
+      createAdmin: 'Создать администратора',
       save: 'Сохранить',
       cancel: 'Отмена',
       edit: 'Изменить',
@@ -114,6 +122,7 @@ const translations = {
       savedApplication: 'Заявка сохранена',
       savedClient: 'Клиент сохранен',
       savedSchemas: 'Настройки схем сохранены',
+      savedAdmin: 'Администратор сохранен',
       statusUpdated: 'Статус обновлен',
       courseDeleted: 'Курс удален или деактивирован',
       applicationDeleted: 'Заявка удалена',
@@ -122,6 +131,16 @@ const translations = {
       saveError: 'Не удалось сохранить',
       schemaSaveError: 'Не удалось сохранить схемы',
       userSearchError: 'Не удалось найти клиентов'
+    },
+    admins: {
+      title: 'Администраторы',
+      description: 'Создание администраторов и управление доступом к панели.',
+      new: 'Новый администратор',
+      account: 'Аккаунт',
+      status: 'Статус',
+      lastLogin: 'Последний вход',
+      created: 'Создан',
+      passwordHelp: 'Оставьте пустым, чтобы не менять пароль.'
     },
     overview: {
       applications: 'Заявки',
@@ -246,6 +265,7 @@ const translations = {
       courses: 'Kurslar',
       applications: 'Arizalar',
       users: 'Mijozlar',
+      admins: 'Adminlar',
       schemas: 'Sxema sozlamalari',
       bot: 'Bot amallari'
     },
@@ -255,10 +275,12 @@ const translations = {
       keyRequired: 'Admin kirishi kerak',
       console: 'Boshqaruv konsoli',
       adminKey: 'Parol',
+      displayName: 'Ism',
       connect: 'Kirish',
       logout: 'Chiqish',
       username: 'Login',
       bootstrap: 'Admin yaratish',
+      createAdmin: 'Admin yaratish',
       save: 'Saqlash',
       cancel: 'Bekor qilish',
       edit: 'Tahrirlash',
@@ -280,6 +302,7 @@ const translations = {
       savedApplication: 'Ariza saqlandi',
       savedClient: 'Mijoz saqlandi',
       savedSchemas: 'Sxema sozlamalari saqlandi',
+      savedAdmin: 'Admin saqlandi',
       statusUpdated: 'Status yangilandi',
       courseDeleted: 'Kurs o‘chirildi yoki deaktiv qilindi',
       applicationDeleted: 'Ariza o‘chirildi',
@@ -288,6 +311,16 @@ const translations = {
       saveError: 'Saqlab bo‘lmadi',
       schemaSaveError: 'Sxemalarni saqlab bo‘lmadi',
       userSearchError: 'Mijozlarni qidirib bo‘lmadi'
+    },
+    admins: {
+      title: 'Adminlar',
+      description: 'Panelga kirish uchun admin yaratish va ruxsatlarni boshqarish.',
+      new: 'Yangi admin',
+      account: 'Akkaunt',
+      status: 'Status',
+      lastLogin: 'Oxirgi kirish',
+      created: 'Yaratilgan',
+      passwordHelp: 'Parolni o‘zgartirmaslik uchun bo‘sh qoldiring.'
     },
     overview: {
       applications: 'Arizalar',
@@ -412,6 +445,7 @@ const translations = {
       courses: 'Courses',
       applications: 'Applications',
       users: 'Clients',
+      admins: 'Admins',
       schemas: 'Schema settings',
       bot: 'Bot operations'
     },
@@ -421,10 +455,12 @@ const translations = {
       keyRequired: 'Admin login required',
       console: 'Management console',
       adminKey: 'Password',
+      displayName: 'Display name',
       connect: 'Sign in',
       logout: 'Logout',
       username: 'Username',
       bootstrap: 'Create admin',
+      createAdmin: 'Create admin',
       save: 'Save',
       cancel: 'Cancel',
       edit: 'Edit',
@@ -446,6 +482,7 @@ const translations = {
       savedApplication: 'Application saved',
       savedClient: 'Client saved',
       savedSchemas: 'Schema settings saved',
+      savedAdmin: 'Admin saved',
       statusUpdated: 'Status updated',
       courseDeleted: 'Course removed or deactivated',
       applicationDeleted: 'Application deleted',
@@ -454,6 +491,16 @@ const translations = {
       saveError: 'Unable to save',
       schemaSaveError: 'Unable to save schemas',
       userSearchError: 'Unable to search users'
+    },
+    admins: {
+      title: 'Admins',
+      description: 'Create dashboard admins and manage panel access.',
+      new: 'New admin',
+      account: 'Account',
+      status: 'Status',
+      lastLogin: 'Last login',
+      created: 'Created',
+      passwordHelp: 'Leave blank to keep the current password.'
     },
     overview: {
       applications: 'Applications',
@@ -595,6 +642,132 @@ function getCheckbox(form: HTMLFormElement, name: string) {
   return Boolean(new FormData(form).get(name));
 }
 
+function SignInPage({
+  username,
+  password,
+  displayName,
+  needsBootstrap,
+  loading,
+  message,
+  health,
+  setUsername,
+  setPassword,
+  setDisplayName,
+  onSubmit,
+  t
+}: {
+  username: string;
+  password: string;
+  displayName: string;
+  needsBootstrap: boolean;
+  loading: boolean;
+  message: string | null;
+  health: 'unknown' | 'healthy' | 'down';
+  setUsername: (value: string) => void;
+  setPassword: (value: string) => void;
+  setDisplayName: (value: string) => void;
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  t: Translation;
+}) {
+  return (
+    <div className="grid min-h-screen bg-[radial-gradient(circle_at_20%_20%,hsl(248_100%_96%),transparent_32%),linear-gradient(135deg,hsl(220_35%_98%),hsl(214_34%_94%))] p-4 lg:grid-cols-[minmax(320px,460px)_1fr] lg:p-6">
+      <section className="relative flex min-h-[calc(100vh-3rem)] flex-col overflow-hidden rounded-lg border bg-card p-6 shadow-premium lg:p-10">
+        <div className="flex items-center gap-3">
+          <div className="grid h-11 w-11 place-items-center rounded-md bg-primary text-lg font-black text-primary-foreground">U</div>
+          <div>
+            <div className="font-semibold tracking-normal">UMK Talim</div>
+            <div className="text-xs text-muted-foreground">{t.common.brandSubtitle}</div>
+          </div>
+        </div>
+        <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center">
+          <div className="mb-8 text-center">
+            <h1 className="text-2xl font-semibold">{needsBootstrap ? t.common.bootstrap : t.common.connect}</h1>
+            <p className="mt-2 text-sm text-muted-foreground">{t.common.keyRequired}</p>
+          </div>
+          {message && <div className="mb-4 rounded-md bg-primary px-4 py-3 text-sm font-medium text-primary-foreground">{message}</div>}
+          <form className="grid gap-4 rounded-md border bg-background/80 p-5 shadow-sm" onSubmit={onSubmit}>
+            <Field label={t.common.username}>
+              <Input value={username} autoComplete="username" onChange={(event) => setUsername(event.target.value)} required />
+            </Field>
+            {needsBootstrap && (
+              <Field label={t.common.displayName}>
+                <Input value={displayName} autoComplete="name" onChange={(event) => setDisplayName(event.target.value)} />
+              </Field>
+            )}
+            <Field label={t.common.adminKey}>
+              <Input value={password} type="password" autoComplete={needsBootstrap ? 'new-password' : 'current-password'} onChange={(event) => setPassword(event.target.value)} required />
+            </Field>
+            <Button type="submit" disabled={loading}>
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+              {needsBootstrap ? t.common.bootstrap : t.common.connect}
+            </Button>
+          </form>
+        </div>
+        <div className="mt-auto flex items-center gap-3 rounded-md border bg-muted/45 p-3 text-xs text-muted-foreground">
+          <ShieldCheck className="h-4 w-4 text-primary" />
+          <span>API: {health === 'healthy' ? t.common.healthy : health === 'down' ? t.common.down : t.common.unknown}</span>
+        </div>
+      </section>
+      <section className="hidden min-h-[calc(100vh-3rem)] px-8 py-4 lg:block">
+        <div className="grid h-full grid-rows-[auto_1fr_auto] rounded-lg border bg-card/80 shadow-premium">
+          <div className="flex items-center justify-between border-b px-6 py-4">
+            <div className="relative w-80">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input className="pl-9" placeholder="Search anything..." />
+            </div>
+            <div className="flex items-center gap-3">
+              <Button size="icon" variant="ghost"><Bell className="h-4 w-4" /></Button>
+              <Button size="icon" variant="ghost"><Mail className="h-4 w-4" /></Button>
+            </div>
+          </div>
+          <div className="grid content-start gap-5 p-6">
+            <div>
+              <h2 className="text-2xl font-semibold">Dashboard</h2>
+              <p className="text-sm text-muted-foreground">Applications, courses, clients, and bot operations in one place.</p>
+            </div>
+            <div className="grid grid-cols-4 gap-4">
+              {[t.overview.applications, t.overview.activeCourses, t.overview.clients, t.bot.notifications].map((label, index) => (
+                <div key={label} className="rounded-md border bg-card p-4 shadow-sm">
+                  <div className="mb-4 h-8 w-8 rounded-md bg-primary/10" />
+                  <div className="text-2xl font-semibold">{[248, 12, 843, 99][index]}</div>
+                  <div className="text-xs text-muted-foreground">{label}</div>
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-[1fr_320px] gap-5">
+              <div className="rounded-md border bg-card p-5 shadow-sm">
+                <div className="mb-6 flex items-center justify-between">
+                  <strong>{t.overview.pipeline}</strong>
+                  <Badge variant="secondary">Daily</Badge>
+                </div>
+                <div className="flex h-56 items-end gap-3">
+                  {[36, 62, 48, 78, 44, 69, 58, 83, 64, 90, 76, 82].map((height, index) => (
+                    <div key={index} className="flex-1 rounded-t-md bg-primary/15" style={{ height: `${height}%` }}>
+                      <div className="h-full rounded-t-md bg-primary/45" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-md border bg-card p-5 shadow-sm">
+                <strong>{t.overview.recentApplications}</strong>
+                <div className="mt-5 grid gap-3">
+                  {[t.applications.new, t.common.statusUpdated, t.common.savedClient, t.common.savedCourse].map((label) => (
+                    <div key={label} className="flex items-center gap-3 rounded-md bg-muted/60 p-3 text-sm">
+                      <div className="h-8 w-8 rounded-md bg-primary/10" />
+                      {label}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="border-t px-6 py-4 text-xs text-muted-foreground">UMK Talim admin console</div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 export function App() {
   const [view, setView] = useState<View>('overview');
   const [lang, setLang] = useState<Lang>(getStoredLang);
@@ -602,6 +775,7 @@ export function App() {
   const [needsBootstrap, setNeedsBootstrap] = useState(false);
   const [loginUsername, setLoginUsername] = useState('admin');
   const [loginPassword, setLoginPassword] = useState('');
+  const [loginDisplayName, setLoginDisplayName] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [health, setHealth] = useState<'unknown' | 'healthy' | 'down'>('unknown');
@@ -610,6 +784,7 @@ export function App() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [admins, setAdmins] = useState<AdminUser[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [courseSearch, setCourseSearch] = useState('');
   const [userSearch, setUserSearch] = useState('');
@@ -640,13 +815,14 @@ export function App() {
       setAuthUser(authStatus.user);
       setNeedsBootstrap(authStatus.needsBootstrap);
       if (!authStatus.user) return;
-      const [nextMeta, nextSchemas, nextCourses, nextApplications, nextUsers, nextStats] = await Promise.all([
+      const [nextMeta, nextSchemas, nextCourses, nextApplications, nextUsers, nextStats, nextAdmins] = await Promise.all([
         api.meta(),
         api.schemas(),
         api.courses(),
         api.applications(),
         api.users(),
-        api.stats()
+        api.stats(),
+        api.admins()
       ]);
       setMeta(nextMeta);
       setSchemas(nextSchemas);
@@ -654,6 +830,7 @@ export function App() {
       setApplications(nextApplications);
       setUsers(nextUsers);
       setStats(nextStats);
+      setAdmins(nextAdmins.filter(Boolean) as AdminUser[]);
     } catch (error) {
       showMessage(error instanceof Error ? error.message : t.common.loadError);
     } finally {
@@ -674,13 +851,34 @@ export function App() {
   const statusCounts = new Map((stats?.byStatus || []).map((item) => [item.status, item._count._all]));
   const maxStatusCount = Math.max(1, ...Array.from(statusCounts.values()));
 
-  async function connect() {
+  if (!authUser) {
+    return (
+      <SignInPage
+        username={loginUsername}
+        password={loginPassword}
+        displayName={loginDisplayName}
+        needsBootstrap={needsBootstrap}
+        loading={false}
+        message={message}
+        health={health}
+        setUsername={setLoginUsername}
+        setPassword={setLoginPassword}
+        setDisplayName={setLoginDisplayName}
+        onSubmit={connect}
+        t={t}
+      />
+    );
+  }
+
+  async function connect(event?: React.FormEvent<HTMLFormElement>) {
+    event?.preventDefault();
     const payload = { username: loginUsername.trim(), password: loginPassword };
     const result = needsBootstrap
-      ? await api.bootstrap({ ...payload, displayName: loginUsername.trim() })
+      ? await api.bootstrap({ ...payload, displayName: loginDisplayName.trim() || loginUsername.trim() })
       : await api.login(payload);
     setAuthUser(result.user);
     setLoginPassword('');
+    setLoginDisplayName('');
     showMessage(needsBootstrap ? t.common.bootstrap : t.common.connected);
     await loadData();
   }
@@ -691,6 +889,7 @@ export function App() {
     setCourses([]);
     setApplications([]);
     setUsers([]);
+    setAdmins([]);
     setStats(null);
     setSchemas(null);
   }
@@ -865,6 +1064,10 @@ export function App() {
               >
                 {sidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
               </Button>
+              <div className="relative hidden w-80 md:block">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input className="pl-9" placeholder="Search anything..." />
+              </div>
               <div>
                 <p className="text-xs font-bold uppercase text-primary">{t.common.console}</p>
                 <h1 className="text-2xl font-semibold">{t.nav[view]}</h1>
@@ -877,21 +1080,21 @@ export function App() {
                   {languages.map((language) => <option key={language.value} value={language.value}>{language.label}</option>)}
                 </NativeSelect>
               </div>
-              {authUser ? (
-                <>
-                  <Badge variant="secondary">{authUser.username}</Badge>
-                  <Button variant="outline" onClick={logout}>{t.common.logout}</Button>
-                </>
-              ) : (
-                <>
-                  <Input className="w-36" value={loginUsername} onChange={(event) => setLoginUsername(event.target.value)} placeholder={t.common.username} />
-                  <Input className="w-44" type="password" value={loginPassword} onChange={(event) => setLoginPassword(event.target.value)} placeholder={t.common.adminKey} />
-                  <Button onClick={connect}>{needsBootstrap ? t.common.bootstrap : t.common.connect}</Button>
-                </>
-              )}
+              <Button variant="ghost" size="icon" aria-label="Notifications" title="Notifications"><Bell className="h-4 w-4" /></Button>
+              <Button variant="ghost" size="icon" aria-label="Messages" title="Messages"><Mail className="h-4 w-4" /></Button>
               <Button variant="outline" size="icon" onClick={loadData} disabled={loading} aria-label="Refresh dashboard" title="Refresh dashboard">
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
               </Button>
+              <div className="ml-1 flex items-center gap-3 border-l pl-3">
+                <div className="grid h-9 w-9 place-items-center rounded-md bg-primary/10 text-sm font-semibold text-primary">
+                  {(authUser.displayName || authUser.username).slice(0, 1).toUpperCase()}
+                </div>
+                <div className="hidden text-right sm:block">
+                  <div className="text-sm font-semibold">{authUser.displayName || authUser.username}</div>
+                  <div className="text-xs text-muted-foreground">{authUser.username}</div>
+                </div>
+                <Button variant="outline" onClick={logout}>{t.common.logout}</Button>
+              </div>
             </div>
           </div>
           <div className="mt-4 flex gap-2 overflow-x-auto lg:hidden">
@@ -977,6 +1180,34 @@ export function App() {
                 showMessage(t.common.clientDeleted);
               }}
               t={t}
+            />
+          )}
+          {view === 'admins' && (
+            <AdminsView
+              admins={admins}
+              currentAdminId={authUser.id}
+              onCreate={async (form) => {
+                await api.createAdmin({
+                  username: getFormValue(form, 'username'),
+                  password: getFormValue(form, 'password'),
+                  displayName: getFormValue(form, 'displayName') || undefined,
+                  isActive: getCheckbox(form, 'isActive')
+                });
+                await loadData();
+                showMessage(t.common.savedAdmin);
+              }}
+              onUpdate={async (admin, form) => {
+                const password = getFormValue(form, 'password');
+                await api.updateAdmin(admin.id, {
+                  displayName: getFormValue(form, 'displayName') || null,
+                  isActive: admin.id === authUser.id ? admin.isActive : getCheckbox(form, 'isActive'),
+                  ...(password ? { password } : {})
+                });
+                await loadData();
+                showMessage(t.common.savedAdmin);
+              }}
+              t={t}
+              lang={lang}
             />
           )}
           {view === 'schemas' && schemas && (
@@ -1236,6 +1467,103 @@ function UsersView(props: {
         </Table>
       </CardContent>
     </Card>
+  );
+}
+
+function AdminsView(props: {
+  admins: AdminUser[];
+  currentAdminId: number;
+  onCreate: (form: HTMLFormElement) => Promise<void>;
+  onUpdate: (admin: AdminUser, form: HTMLFormElement) => Promise<void>;
+  t: Translation;
+  lang: Lang;
+}) {
+  const [editingId, setEditingId] = useState<number | 'new' | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  async function submit(event: React.FormEvent<HTMLFormElement>, admin?: AdminUser) {
+    event.preventDefault();
+    setSaving(true);
+    try {
+      if (admin) await props.onUpdate(admin, event.currentTarget);
+      else await props.onCreate(event.currentTarget);
+      setEditingId(null);
+      event.currentTarget.reset();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="grid gap-5">
+      <Card>
+        <CardHeader className="gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <CardTitle>{props.t.admins.title}</CardTitle>
+            <CardDescription>{props.t.admins.description}</CardDescription>
+          </div>
+          <Button onClick={() => setEditingId(editingId === 'new' ? null : 'new')}><UserPlus className="h-4 w-4" /> {props.t.admins.new}</Button>
+        </CardHeader>
+        {editingId === 'new' && (
+          <CardContent>
+            <form className="grid gap-3 rounded-md border bg-muted/35 p-4 md:grid-cols-4" onSubmit={(event) => submit(event)}>
+              <Field label={props.t.common.username}><Input name="username" required /></Field>
+              <Field label={props.t.common.displayName}><Input name="displayName" /></Field>
+              <Field label={props.t.common.adminKey}><Input name="password" type="password" required /></Field>
+              <div className="flex items-end justify-between gap-3">
+                <label className="mb-2 flex items-center gap-2 text-sm font-medium"><input name="isActive" type="checkbox" defaultChecked /> {props.t.common.active}</label>
+                <Button type="submit" disabled={saving}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} {props.t.common.save}</Button>
+              </div>
+            </form>
+          </CardContent>
+        )}
+        <CardContent className="overflow-x-auto">
+          <Table>
+            <TableHeader><TableRow><TableHead>{props.t.admins.account}</TableHead><TableHead>{props.t.admins.status}</TableHead><TableHead>{props.t.admins.lastLogin}</TableHead><TableHead>{props.t.admins.created}</TableHead><TableHead /></TableRow></TableHeader>
+            <TableBody>
+              {props.admins.map((admin) => (
+                <TableRow key={admin.id}>
+                  <TableCell>
+                    <div className="font-medium">{admin.displayName || admin.username}</div>
+                    <div className="text-sm text-muted-foreground">@{admin.username}</div>
+                  </TableCell>
+                  <TableCell><Badge variant={admin.isActive ? 'default' : 'secondary'}>{admin.isActive ? props.t.common.active : props.t.common.inactive}</Badge></TableCell>
+                  <TableCell>{formatDate(admin.lastLoginAt, props.lang)}</TableCell>
+                  <TableCell>{formatDate(admin.createdAt, props.lang)}</TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="secondary" size="sm" onClick={() => setEditingId(editingId === admin.id ? null : admin.id)}>{props.t.common.edit}</Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+      {props.admins.map((admin) => editingId === admin.id ? (
+        <Card key={`edit-${admin.id}`}>
+          <CardHeader>
+            <CardTitle>{props.t.common.edit}: {admin.username}</CardTitle>
+            <CardDescription>{props.t.admins.passwordHelp}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form className="grid gap-3 md:grid-cols-4" onSubmit={(event) => submit(event, admin)}>
+              <Field label={props.t.common.displayName}><Input name="displayName" defaultValue={admin.displayName || ''} /></Field>
+              <Field label={props.t.common.adminKey}><Input name="password" type="password" /></Field>
+              <div className="flex items-end">
+                <label className="mb-2 flex items-center gap-2 text-sm font-medium">
+                  <input name="isActive" type="checkbox" defaultChecked={admin.isActive} disabled={admin.id === props.currentAdminId} />
+                  {props.t.common.active}
+                </label>
+              </div>
+              <div className="flex items-end justify-end gap-2">
+                <Button variant="outline" type="button" onClick={() => setEditingId(null)}>{props.t.common.cancel}</Button>
+                <Button type="submit" disabled={saving}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} {props.t.common.save}</Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      ) : null)}
+    </div>
   );
 }
 
