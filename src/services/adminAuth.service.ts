@@ -29,7 +29,9 @@ function publicAdminUser(user) {
     id: user.id,
     username: user.username,
     displayName: user.displayName,
-    isActive: user.isActive
+    isActive: user.isActive,
+    lastLoginAt: user.lastLoginAt,
+    createdAt: user.createdAt
   };
 }
 
@@ -43,25 +45,82 @@ async function countAdminUsers() {
   return prisma.adminUser.count();
 }
 
+function normalizeAdminPayload(data, { requirePassword = true } = {}) {
+  const username = data.username === undefined ? undefined : String(data.username || '').trim().toLowerCase();
+  const password = data.password === undefined ? undefined : String(data.password || '');
+  const displayName = data.displayName === undefined ? undefined : String(data.displayName || '').trim() || null;
+
+  if (username !== undefined && !username) {
+    throw httpError('Username is required', 400);
+  }
+  if (requirePassword && (!password || password.length < 8)) {
+    throw httpError('Password with at least 8 characters is required', 400);
+  }
+  if (!requirePassword && password !== undefined && password && password.length < 8) {
+    throw httpError('Password must be at least 8 characters', 400);
+  }
+
+  return { username, password, displayName };
+}
+
 async function bootstrapAdminUser(data) {
   const existingCount = await countAdminUsers();
   if (existingCount > 0) {
     throw httpError('Admin user already exists', 409);
   }
 
-  const username = String(data.username || '').trim().toLowerCase();
-  const password = String(data.password || '');
-  if (!username || password.length < 8) {
-    throw httpError('Username and password with at least 8 characters are required', 400);
-  }
+  const { username, password, displayName } = normalizeAdminPayload(data);
 
   const passwordHash = await bcrypt.hash(password, 12);
   const user = await prisma.adminUser.create({
     data: {
       username,
       passwordHash,
-      displayName: data.displayName ? String(data.displayName).trim() : null
+      displayName
     }
+  });
+  return publicAdminUser(user);
+}
+
+async function listAdminUsers() {
+  const users = await prisma.adminUser.findMany({
+    orderBy: { createdAt: 'asc' }
+  });
+  return users.map(publicAdminUser);
+}
+
+async function createAdminUser(data) {
+  const { username, password, displayName } = normalizeAdminPayload(data);
+  const passwordHash = await bcrypt.hash(password, 12);
+  const user = await prisma.adminUser.create({
+    data: {
+      username,
+      passwordHash,
+      displayName,
+      isActive: data.isActive === undefined ? true : Boolean(data.isActive)
+    }
+  });
+  return publicAdminUser(user);
+}
+
+async function updateAdminUser(id, data, currentUserId) {
+  const adminId = Number(id);
+  if (!Number.isInteger(adminId)) throw httpError('Invalid admin id', 400);
+
+  const { password, displayName } = normalizeAdminPayload(data, { requirePassword: false });
+  const updateData: Record<string, any> = {};
+  if (displayName !== undefined) updateData.displayName = displayName;
+  if (password) updateData.passwordHash = await bcrypt.hash(password, 12);
+  if (data.isActive !== undefined) {
+    if (adminId === currentUserId && !Boolean(data.isActive)) {
+      throw httpError('You cannot deactivate your own admin account', 400);
+    }
+    updateData.isActive = Boolean(data.isActive);
+  }
+
+  const user = await prisma.adminUser.update({
+    where: { id: adminId },
+    data: updateData
   });
   return publicAdminUser(user);
 }
@@ -126,9 +185,12 @@ module.exports = {
   SESSION_TTL_MS,
   bootstrapAdminUser,
   countAdminUsers,
+  createAdminUser,
   createSessionToken,
   getSessionCookie,
   legacyAdminKeyMatches,
+  listAdminUsers,
   loginAdminUser,
+  updateAdminUser,
   verifyRequestSession
 };

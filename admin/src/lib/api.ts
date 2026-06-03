@@ -1,4 +1,4 @@
-import type { AdminMeta, Application, AuthStatus, Course, DynamicSchemas, Stats, User } from './types';
+import type { AdminMeta, AdminUser, Application, AuthStatus, Course, DynamicSchemas, Stats, User } from './types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
@@ -31,6 +31,13 @@ export class ApiClient {
     return this.request<{ user: AuthStatus['user'] }>('/api/auth/login', { method: 'POST', body: JSON.stringify(payload) });
   }
   logout() { return this.request<void>('/api/auth/logout', { method: 'POST' }); }
+  admins() { return this.request<AdminUser[]>('/api/auth/admins'); }
+  createAdmin(payload: { username: string; password: string; displayName?: string; isActive?: boolean }) {
+    return this.request<AdminUser>('/api/auth/admins', { method: 'POST', body: JSON.stringify(payload) });
+  }
+  updateAdmin(id: number, payload: { displayName?: string | null; password?: string; isActive?: boolean }) {
+    return this.request<AdminUser>(`/api/auth/admins/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+  }
   meta() { return this.request<AdminMeta>('/api/settings/meta'); }
   schemas() { return this.request<DynamicSchemas>('/api/settings/schemas'); }
   saveSchemas(payload: DynamicSchemas) {

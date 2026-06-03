@@ -57,6 +57,23 @@ function formatApplicationStatusNotification(application, changedBy) {
   return lines.join('\n');
 }
 
+function formatApplicantStatusNotification(application) {
+  const previousStatus = APPLICATION_STATUS_LABELS[application.previousStatus] || application.previousStatus || 'неизвестно';
+  const nextStatus = APPLICATION_STATUS_LABELS[application.status] || application.status;
+  const lines = [
+    'Статус вашей заявки обновлён',
+    `Заявка: #${application.id}`,
+    `Курс: ${application.course?.title || 'неизвестно'}`,
+    `Новый статус: ${nextStatus}`
+  ];
+
+  if (application.previousStatus && application.previousStatus !== application.status) {
+    lines.splice(3, 0, `Предыдущий статус: ${previousStatus}`);
+  }
+
+  return lines.join('\n');
+}
+
 async function notifyAdmins(text, opts = {}) {
   if (!bot) {
     logger.warn('Telegram notification skipped: BOT_TOKEN is not set.');
@@ -117,23 +134,38 @@ async function notifyApplicationStatusChanged(application, changedBy) {
     return null;
   }
 
-  if (!applicationsChannelId) {
-    logger.warn('Application status notification skipped: APPLICATIONS_CHANNEL_ID is empty.');
-    return null;
+  const deliveries: Promise<unknown>[] = [];
+
+  if (applicationsChannelId) {
+    const opts: Record<string, unknown> = {};
+    if (
+      application.notificationChatId &&
+      application.notificationMessageId &&
+      String(application.notificationChatId) === String(applicationsChannelId)
+    ) {
+      opts.reply_to_message_id = application.notificationMessageId;
+      opts.allow_sending_without_reply = true;
+    }
+
+    deliveries.push(bot.sendMessage(applicationsChannelId, formatApplicationStatusNotification(application, changedBy), opts));
+  } else {
+    logger.warn('Admin status notification skipped: APPLICATIONS_CHANNEL_ID is empty.');
   }
 
-  const opts: Record<string, unknown> = {};
-  if (
-    application.notificationChatId &&
-    application.notificationMessageId &&
-    String(application.notificationChatId) === String(applicationsChannelId)
-  ) {
-    opts.reply_to_message_id = application.notificationMessageId;
-    opts.allow_sending_without_reply = true;
+  if (application.user?.telegramId) {
+    deliveries.push(bot.sendMessage(application.user.telegramId, formatApplicantStatusNotification(application)));
+  } else {
+    logger.warn('Applicant status notification skipped: user telegramId is missing.', { applicationId: application.id });
   }
 
-  const text = formatApplicationStatusNotification(application, changedBy);
-  return bot.sendMessage(applicationsChannelId, text, opts);
+  const results = await Promise.allSettled(deliveries);
+  results.forEach((result) => {
+    if (result.status === 'rejected') {
+      logger.error('Failed to send application status notification', { err: result.reason, applicationId: application.id });
+    }
+  });
+
+  return results;
 }
 
 module.exports = {
@@ -141,5 +173,6 @@ module.exports = {
   notifyNewApplication,
   notifyApplicationStatusChanged,
   formatApplicationNotification,
-  formatApplicationStatusNotification
+  formatApplicationStatusNotification,
+  formatApplicantStatusNotification
 };

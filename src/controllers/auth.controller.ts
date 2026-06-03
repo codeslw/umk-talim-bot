@@ -3,8 +3,11 @@ const {
   SESSION_TTL_MS,
   bootstrapAdminUser,
   countAdminUsers,
+  createAdminUser,
   createSessionToken,
+  listAdminUsers,
   loginAdminUser,
+  updateAdminUser,
   verifyRequestSession
 } = require('../services/adminAuth.service');
 
@@ -44,4 +47,16 @@ function logout(req, res) {
   res.status(204).send();
 }
 
-module.exports = { bootstrap, getAuthStatus, login, logout };
+async function getAdmins(req, res) {
+  res.json({ data: await listAdminUsers() });
+}
+
+async function postAdmin(req, res) {
+  res.status(201).json({ data: await createAdminUser(req.body) });
+}
+
+async function patchAdmin(req, res) {
+  res.json({ data: await updateAdminUser(req.params.id, req.body, req.adminUser?.id) });
+}
+
+module.exports = { bootstrap, getAdmins, getAuthStatus, login, logout, patchAdmin, postAdmin };

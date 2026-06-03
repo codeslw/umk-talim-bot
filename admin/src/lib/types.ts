@@ -97,6 +97,8 @@ export type AdminUser = {
   username: string;
   displayName?: string | null;
   isActive: boolean;
+  lastLoginAt?: string | null;
+  createdAt?: string;
 };
 
 export type AuthStatus = {
