@@ -1009,53 +1009,60 @@ export function App() {
       showMessage(error instanceof Error ? error.message : t.common.userSearchError);
     }
   }
-
   return (
     <div className="min-h-screen bg-background text-foreground">
       <aside className={cn(
-        'fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground shadow-enterprise transition-[width] duration-200 lg:flex',
-        sidebarCollapsed ? 'w-20 p-3' : 'w-72 p-5'
+        'fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-white/5 bg-slate-950/40 text-foreground shadow-2xl backdrop-blur-xl transition-[width,padding] duration-200 lg:flex',
+        sidebarCollapsed ? 'w-20 p-3' : 'w-72 p-6'
       )}>
-        <div className={cn('flex items-center gap-3', sidebarCollapsed && 'justify-center')}>
-          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-primary text-lg font-black text-primary-foreground shadow-sm">U</div>
+        <div className={cn('flex items-center gap-3 font-heading', sidebarCollapsed && 'justify-center')}>
+          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-tr from-primary to-accent text-lg font-black text-white shadow-lg shadow-primary/20 animate-pulse-slow">
+            U
+          </div>
           {!sidebarCollapsed && (
             <div className="min-w-0">
-              <div className="font-semibold">UMK Talim</div>
-              <div className="truncate text-xs text-sidebar-muted">{t.common.brandSubtitle}</div>
+              <div className="truncate bg-gradient-to-r from-white to-white/70 bg-clip-text text-md font-bold tracking-tight text-transparent">UMK Ta'lim</div>
+              <div className="truncate text-xs font-medium text-muted-foreground">{t.common.brandSubtitle}</div>
             </div>
           )}
         </div>
-        <nav className="mt-9 grid gap-1">
-          {navItems.map((item) => (
-            <button
-              key={item.view}
-              aria-label={t.nav[item.labelKey]}
-              title={sidebarCollapsed ? t.nav[item.labelKey] : undefined}
-              className={cn(
-                'flex h-11 items-center gap-3 rounded-md px-3 text-sm font-medium text-sidebar-muted transition hover:bg-sidebar-accent hover:text-sidebar-foreground',
-                view === item.view && 'bg-sidebar-active text-sidebar-foreground shadow-sm',
-                sidebarCollapsed && 'justify-center px-0'
-              )}
-              onClick={() => setView(item.view)}
-            >
-              <item.icon className="h-4 w-4" />
-              {!sidebarCollapsed && t.nav[item.labelKey]}
-            </button>
-          ))}
+        <nav className="mt-9 grid gap-1.5">
+          {navItems.map((item) => {
+            const isActive = view === item.view;
+            return (
+              <button
+                key={item.view}
+                aria-label={t.nav[item.labelKey]}
+                title={sidebarCollapsed ? t.nav[item.labelKey] : undefined}
+                className={cn(
+                  'group relative flex h-11 items-center gap-3 rounded-lg px-4 text-sm font-medium transition-all duration-300',
+                  isActive
+                    ? 'border-l-2 border-primary bg-primary/10 font-semibold text-primary shadow-[inset_0_0_12px_rgba(99,102,241,0.05)]'
+                    : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground',
+                  sidebarCollapsed && 'justify-center px-0'
+                )}
+                onClick={() => setView(item.view)}
+              >
+                <item.icon className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
+                {!sidebarCollapsed && t.nav[item.labelKey]}
+              </button>
+            );
+          })}
         </nav>
         {!sidebarCollapsed && (
-          <div className="mt-auto rounded-md border border-sidebar-border bg-sidebar-panel p-3 text-sm text-sidebar-muted">
-            {authUser ? `${t.common.connected}: ${authUser.username}` : t.common.keyRequired}
+          <div className="mt-auto flex items-center gap-2.5 rounded-xl border border-white/5 bg-muted/20 p-4 text-xs text-muted-foreground">
+            <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-glow-accent animate-pulse" />
+            <span className="truncate font-medium">{`${t.common.connected}: ${authUser.username}`}</span>
           </div>
         )}
       </aside>
 
       <main className={cn('min-h-screen transition-[padding] duration-200', sidebarCollapsed ? 'lg:pl-20' : 'lg:pl-72')}>
-        <header className="sticky top-0 z-20 border-b bg-card/92 px-4 py-4 shadow-sm backdrop-blur md:px-7">
+        <header className="sticky top-0 z-20 border-b border-white/5 bg-card/40 px-6 py-4 shadow-sm backdrop-blur-xl md:px-8">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex items-center gap-3">
               <Button
-                className="hidden lg:inline-flex"
+                className="hidden rounded-xl border-white/5 bg-muted/40 hover:bg-muted/80 lg:inline-flex"
                 variant="outline"
                 size="icon"
                 aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
@@ -1065,25 +1072,25 @@ export function App() {
                 {sidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
               </Button>
               <div className="relative hidden w-80 md:block">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input className="pl-9" placeholder="Search anything..." />
+                <Search className="absolute left-3.5 top-3 h-4 w-4 text-muted-foreground" />
+                <Input className="h-10 rounded-xl border-white/5 bg-background/50 pl-10 text-sm focus:border-primary/50 focus:ring-primary/20 focus:ring-offset-0" placeholder="Search anything..." />
               </div>
               <div>
-                <p className="text-xs font-bold uppercase text-primary">{t.common.console}</p>
-                <h1 className="text-2xl font-semibold">{t.nav[view]}</h1>
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary/80">{t.common.console}</p>
+                <h1 className="mt-0.5 text-2xl font-bold tracking-tight font-heading text-white">{t.nav[view]}</h1>
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="flex h-10 items-center gap-2 rounded-md border bg-background/70 px-2">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex h-10 items-center gap-2 rounded-xl border border-white/5 bg-background/45 px-3">
                 <Languages className="h-4 w-4 text-muted-foreground" />
-                <NativeSelect className="h-8 w-20 border-0 bg-transparent px-1" value={lang} onChange={(event) => changeLang(event.target.value as Lang)}>
-                  {languages.map((language) => <option key={language.value} value={language.value}>{language.label}</option>)}
+                <NativeSelect className="h-8 w-20 border-0 bg-transparent px-1 text-xs font-semibold focus:ring-0 focus:outline-none" value={lang} onChange={(event) => changeLang(event.target.value as Lang)}>
+                  {languages.map((language) => <option key={language.value} value={language.value} className="bg-card text-foreground">{language.label}</option>)}
                 </NativeSelect>
               </div>
-              <Button variant="ghost" size="icon" aria-label="Notifications" title="Notifications"><Bell className="h-4 w-4" /></Button>
-              <Button variant="ghost" size="icon" aria-label="Messages" title="Messages"><Mail className="h-4 w-4" /></Button>
-              <Button variant="outline" size="icon" onClick={loadData} disabled={loading} aria-label="Refresh dashboard" title="Refresh dashboard">
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
+              <Button variant="ghost" size="icon" className="rounded-xl hover:bg-muted/70" aria-label="Notifications" title="Notifications"><Bell className="h-4 w-4" /></Button>
+              <Button variant="ghost" size="icon" className="rounded-xl hover:bg-muted/70" aria-label="Messages" title="Messages"><Mail className="h-4 w-4" /></Button>
+              <Button variant="outline" size="icon" className="flex h-10 w-10 items-center justify-center rounded-xl border-white/5 bg-muted/40 hover:bg-muted/80" onClick={loadData} disabled={loading} aria-label="Refresh dashboard" title="Refresh dashboard">
+                {loading ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : <RefreshCcw className="h-4 w-4" />}
               </Button>
               <div className="ml-1 flex items-center gap-3 border-l pl-3">
                 <div className="grid h-9 w-9 place-items-center rounded-md bg-primary/10 text-sm font-semibold text-primary">
@@ -1097,18 +1104,23 @@ export function App() {
               </div>
             </div>
           </div>
-          <div className="mt-4 flex gap-2 overflow-x-auto lg:hidden">
+          <div className="mt-4 flex gap-1.5 overflow-x-auto pb-1 lg:hidden">
             {navItems.map((item) => (
-              <Button key={item.view} size="sm" variant={view === item.view ? 'default' : 'secondary'} onClick={() => setView(item.view)}>
-                <item.icon className="h-4 w-4" />
+              <Button key={item.view} size="sm" className="rounded-lg text-xs font-semibold" variant={view === item.view ? 'default' : 'secondary'} onClick={() => setView(item.view)}>
+                <item.icon className="h-3.5 w-3.5" />
                 {t.nav[item.labelKey]}
               </Button>
             ))}
           </div>
         </header>
 
-        <div className="p-4 md:p-7">
-          {message && <div className="mb-4 rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground">{message}</div>}
+        <div className="p-6 md:p-8 max-w-7xl mx-auto w-full">
+          {message && (
+            <div className="mb-6 rounded-xl border border-primary/20 bg-primary/10 p-4 text-sm font-semibold text-primary-foreground backdrop-blur-md animate-fade-in shadow-glow">
+              {message}
+            </div>
+          )}
+
           {view === 'overview' && (
             <Overview
               courses={courses}
@@ -1252,55 +1264,91 @@ function Overview({
     { label: t.overview.averageAge, value: stats?.avgAge ? Math.round(stats.avgAge) : '-', icon: Activity }
   ];
   return (
-    <div className="grid gap-5">
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {metrics.map((metric) => (
-          <Card key={metric.label}>
-            <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
-              <CardDescription>{metric.label}</CardDescription>
-              <metric.icon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-semibold">{metric.value}</div>
-            </CardContent>
-          </Card>
-        ))}
+    <div className="grid gap-6">
+      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+        {metrics.map((metric, idx) => {
+          const gradients = [
+            'from-violet-500/10 to-indigo-500/5 hover:border-violet-500/30',
+            'from-cyan-500/10 to-blue-500/5 hover:border-cyan-500/30',
+            'from-emerald-500/10 to-teal-500/5 hover:border-emerald-500/30',
+            'from-amber-500/10 to-orange-500/5 hover:border-amber-500/30'
+          ];
+          const iconColors = [
+            'bg-violet-500/10 text-violet-400',
+            'bg-cyan-500/10 text-cyan-400',
+            'bg-emerald-500/10 text-emerald-400',
+            'bg-amber-500/10 text-amber-400'
+          ];
+          return (
+            <Card key={metric.label} className={cn("overflow-hidden relative bg-gradient-to-br border border-white/5 hover:shadow-glow transition-all duration-300 group", gradients[idx % gradients.length])}>
+              <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full blur-2xl -mr-4 -mt-4 transition-all duration-500 group-hover:scale-150" />
+              <CardHeader className="flex-row items-center justify-between space-y-0 pb-3 relative z-10">
+                <CardDescription className="text-xs font-bold uppercase tracking-wider text-muted-foreground/80">{metric.label}</CardDescription>
+                <div className={cn("p-2.5 rounded-xl transition-all duration-300 group-hover:scale-110", iconColors[idx % iconColors.length])}>
+                  <metric.icon className="h-5 w-5" />
+                </div>
+              </CardHeader>
+              <CardContent className="relative z-10 pt-1">
+                <div className="text-3xl font-extrabold tracking-tight font-heading text-white">{metric.value}</div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
-      <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
-        <Card>
+      <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+        <Card className="border border-white/5 bg-card/25 backdrop-blur-md">
           <CardHeader>
-            <CardTitle>{t.overview.pipeline}</CardTitle>
+            <CardTitle className="font-heading text-xl font-bold tracking-tight text-white">{t.overview.pipeline}</CardTitle>
             <CardDescription>{t.overview.pipelineDescription}</CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-4">
+          <CardContent className="grid gap-4.5">
             {meta.applicationStatuses.map((status) => {
               const count = statusCounts.get(status) || 0;
               return (
-                <div key={status} className="grid grid-cols-[150px_1fr_42px] items-center gap-3">
-                  <span className="text-sm text-muted-foreground">{statusLabel(status)}</span>
-                  <div className="h-2 overflow-hidden rounded-full bg-muted">
-                    <div className="h-full rounded-full bg-accent" style={{ width: `${(count / maxStatusCount) * 100}%` }} />
+                <div key={status} className="grid grid-cols-[150px_1fr_48px] items-center gap-4 py-1 group/bar">
+                  <span className="text-sm font-semibold text-muted-foreground group-hover/bar:text-white transition-colors">{statusLabel(status)}</span>
+                  <div className="h-2.5 overflow-hidden rounded-full bg-slate-900/60 border border-white/5 relative">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-primary to-accent transition-all duration-1000 ease-out shadow-glow-accent"
+                      style={{ width: `${(count / maxStatusCount) * 100}%` }}
+                    />
                   </div>
-                  <strong className="text-right text-sm">{count}</strong>
+                  <div className="text-right">
+                    <span className="text-xs font-bold font-heading text-white bg-white/5 border border-white/5 px-2 py-0.5 rounded-md">{count}</span>
+                  </div>
                 </div>
               );
             })}
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border border-white/5 bg-card/25 backdrop-blur-md">
           <CardHeader>
-            <CardTitle>{t.overview.recentApplications}</CardTitle>
+            <CardTitle className="font-heading text-xl font-bold tracking-tight text-white">{t.overview.recentApplications}</CardTitle>
             <CardDescription>{t.overview.recentDescription}</CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-3">
-            {applications.slice(0, 6).map((application) => (
-              <div key={application.id} className="rounded-lg border bg-muted/45 p-3">
-                <div className="font-medium">{application.user?.fullName || t.overview.unknownClient}</div>
-                <div className="mt-1 text-sm text-muted-foreground">
-                  {application.course?.title || t.overview.noCourse} · {statusLabel(application.status)} · {formatDate(application.createdAt, lang)}
+          <CardContent className="grid gap-3.5">
+            {applications.slice(0, 6).map((application) => {
+              const isNew = application.status === 'NEW' || application.status === 'new';
+              return (
+                <div key={application.id} className="group/item flex items-center justify-between rounded-xl border border-white/5 bg-slate-950/20 p-4 transition-all duration-300 hover:bg-slate-950/40 hover:border-white/10">
+                  <div className="flex-1 min-w-0 pr-4">
+                    <div className="font-bold text-sm truncate text-white group-hover/item:text-primary transition-colors">{application.user?.fullName || t.overview.unknownClient}</div>
+                    <div className="mt-1 text-xs text-muted-foreground truncate flex items-center gap-2">
+                      <span className="text-white/70 font-semibold">{application.course?.title || t.overview.noCourse}</span>
+                      <span>·</span>
+                      <span>{formatDate(application.createdAt, lang)}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <Badge className={cn("text-[10px] font-bold px-2.5 py-0.5 rounded-lg border shadow-sm uppercase tracking-wide",
+                      isNew ? "bg-primary/10 text-primary border-primary/20" : "bg-muted/75 text-muted-foreground border-white/5"
+                    )}>
+                      {statusLabel(application.status)}
+                    </Badge>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </CardContent>
         </Card>
       </div>
@@ -1326,32 +1374,41 @@ function CoursesView({
   t: Translation;
 }) {
   return (
-    <Card>
-      <CardHeader className="gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <Card className="border border-white/5 bg-card/25 backdrop-blur-md">
+      <CardHeader className="gap-4 lg:flex-row lg:items-center lg:justify-between pb-6">
         <div>
-          <CardTitle>{t.courses.title}</CardTitle>
+          <CardTitle className="font-heading text-xl font-bold tracking-tight text-white">{t.courses.title}</CardTitle>
           <CardDescription>{t.courses.description}</CardDescription>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input className="w-72 pl-9" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t.courses.search} />
+            <Search className="absolute left-3.5 top-3 h-4 w-4 text-muted-foreground" />
+            <Input className="w-72 pl-10 rounded-xl border-white/5 bg-background/50 text-sm h-10 focus:border-primary/50 focus:ring-primary/20 focus:ring-offset-0" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t.courses.search} />
           </div>
-          <Button onClick={onCreate}><Plus className="h-4 w-4" /> {t.courses.new}</Button>
+          <Button onClick={onCreate} className="rounded-xl shadow-lg shadow-primary/20 hover:shadow-primary/30 h-10 text-xs font-bold"><Plus className="h-4 w-4" /> {t.courses.new}</Button>
         </div>
       </CardHeader>
       <CardContent className="overflow-x-auto">
         <Table>
-          <TableHeader><TableRow><TableHead>{t.courses.course}</TableHead><TableHead>{t.courses.format}</TableHead><TableHead>{t.courses.age}</TableHead><TableHead>{t.courses.cost}</TableHead><TableHead>{t.courses.applications}</TableHead><TableHead>{t.courses.status}</TableHead><TableHead /></TableRow></TableHeader>
+          <TableHeader className="border-b border-white/5"><TableRow><TableHead className="text-white">{t.courses.course}</TableHead><TableHead className="text-white">{t.courses.format}</TableHead><TableHead className="text-white">{t.courses.age}</TableHead><TableHead className="text-white">{t.courses.cost}</TableHead><TableHead className="text-white">{t.courses.applications}</TableHead><TableHead className="text-white">{t.courses.status}</TableHead><TableHead /></TableRow></TableHeader>
           <TableBody>
             {courses.map((course) => (
-              <TableRow key={course.id}>
-                <TableCell><div className="font-medium">{course.title}</div><div className="text-sm text-muted-foreground">{course.duration || t.courses.noDuration}</div></TableCell>
-                <TableCell>{course.format}</TableCell>
-                <TableCell>{course.ageMin}-{course.ageMax}</TableCell>
-                <TableCell>{course.cost || '-'}</TableCell>
-                <TableCell>{course._count?.applications ?? 0}</TableCell>
-                <TableCell><Badge variant={course.isActive ? 'default' : 'secondary'}>{course.isActive ? t.common.active : t.common.inactive}</Badge></TableCell>
+              <TableRow key={course.id} className="border-b border-white/5 hover:bg-white/5 transition-all duration-200">
+                <TableCell>
+                  <div className="font-bold text-white text-sm">{course.title}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{course.duration || t.courses.noDuration}</div>
+                </TableCell>
+                <TableCell className="text-sm font-semibold text-white/90">{course.format}</TableCell>
+                <TableCell className="text-sm text-muted-foreground font-medium">{course.ageMin}-{course.ageMax}</TableCell>
+                <TableCell className="text-sm font-semibold text-white/90">{course.cost || '-'}</TableCell>
+                <TableCell className="text-sm font-bold font-heading text-white">{course._count?.applications ?? 0}</TableCell>
+                <TableCell>
+                  <Badge className={cn("text-[10px] font-bold px-2.5 py-0.5 rounded-lg border uppercase tracking-wide",
+                    course.isActive ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-slate-500/10 text-slate-400 border-slate-500/20"
+                  )}>
+                    {course.isActive ? t.common.active : t.common.inactive}
+                  </Badge>
+                </TableCell>
                 <TableCell className="text-right"><RowActions onEdit={() => onEdit(course)} onDelete={() => onDelete(course)} t={t} /></TableCell>
               </TableRow>
             ))}
@@ -1382,42 +1439,45 @@ function ApplicationsView(props: {
   if (props.statusFilter) exportParams.set('status', props.statusFilter);
   if (props.courseFilter) exportParams.set('courseId', props.courseFilter);
   return (
-    <Card>
-      <CardHeader className="gap-4 xl:flex-row xl:items-center xl:justify-between">
+    <Card className="border border-white/5 bg-card/25 backdrop-blur-md">
+      <CardHeader className="gap-4 xl:flex-row xl:items-center xl:justify-between pb-6">
         <div>
-          <CardTitle>{props.t.applications.title}</CardTitle>
+          <CardTitle className="font-heading text-xl font-bold tracking-tight text-white">{props.t.applications.title}</CardTitle>
           <CardDescription>{props.t.applications.description}</CardDescription>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <NativeSelect className="w-48" value={props.statusFilter} onChange={(event) => props.setStatusFilter(event.target.value)}>
-            <option value="">{props.t.common.allStatuses}</option>
-            {props.meta.applicationStatuses.map((status) => <option key={status} value={status}>{props.statusLabel(status)}</option>)}
+        <div className="flex flex-wrap items-center gap-3">
+          <NativeSelect className="w-48 rounded-xl border-white/5 bg-background/50 text-xs h-10 focus:border-primary/50 focus:ring-primary/20" value={props.statusFilter} onChange={(event) => props.setStatusFilter(event.target.value)}>
+            <option value="" className="bg-card text-foreground">{props.t.common.allStatuses}</option>
+            {props.meta.applicationStatuses.map((status) => <option key={status} value={status} className="bg-card text-foreground">{props.statusLabel(status)}</option>)}
           </NativeSelect>
-          <NativeSelect className="w-56" value={props.courseFilter} onChange={(event) => props.setCourseFilter(event.target.value)}>
-            <option value="">{props.t.common.allCourses}</option>
-            {props.courses.map((course) => <option key={course.id} value={course.id}>{course.title}</option>)}
+          <NativeSelect className="w-56 rounded-xl border-white/5 bg-background/50 text-xs h-10 focus:border-primary/50 focus:ring-primary/20" value={props.courseFilter} onChange={(event) => props.setCourseFilter(event.target.value)}>
+            <option value="" className="bg-card text-foreground">{props.t.common.allCourses}</option>
+            {props.courses.map((course) => <option key={course.id} value={course.id} className="bg-card text-foreground">{course.title}</option>)}
           </NativeSelect>
-          <Button onClick={props.onCreate}><Plus className="h-4 w-4" /> {props.t.applications.new}</Button>
-          <Button asChild variant="outline">
-            <a href={`/api/applications/export/excel?${exportParams.toString()}`}><Download className="h-4 w-4" /> {props.t.common.export}</a>
+          <Button onClick={props.onCreate} className="rounded-xl shadow-lg shadow-primary/20 hover:shadow-primary/30 h-10 text-xs font-bold"><Plus className="h-4 w-4" /> {props.t.applications.new}</Button>
+          <Button asChild variant="outline" className="rounded-xl border-white/5 bg-muted/40 hover:bg-muted/80 h-10 text-xs font-bold text-white">
+            <a href={`/api/applications/export/excel?${exportParams.toString()}`} className="flex items-center gap-1.5"><Download className="h-4 w-4" /> {props.t.common.export}</a>
           </Button>
         </div>
       </CardHeader>
       <CardContent className="overflow-x-auto">
         <Table>
-          <TableHeader><TableRow><TableHead>{props.t.applications.client}</TableHead><TableHead>{props.t.applications.course}</TableHead><TableHead>{props.t.applications.status}</TableHead><TableHead>{props.t.applications.city}</TableHead><TableHead>{props.t.applications.created}</TableHead><TableHead /></TableRow></TableHeader>
+          <TableHeader className="border-b border-white/5"><TableRow><TableHead className="text-white">{props.t.applications.client}</TableHead><TableHead className="text-white">{props.t.applications.course}</TableHead><TableHead className="text-white">{props.t.applications.status}</TableHead><TableHead className="text-white">{props.t.applications.city}</TableHead><TableHead className="text-white">{props.t.applications.created}</TableHead><TableHead /></TableRow></TableHeader>
           <TableBody>
             {props.applications.map((application) => (
-              <TableRow key={application.id}>
-                <TableCell><div className="font-medium">{application.user?.fullName || '-'}</div><div className="text-sm text-muted-foreground">{application.user?.phone || '-'}</div></TableCell>
-                <TableCell>{application.course?.title || '-'}</TableCell>
+              <TableRow key={application.id} className="border-b border-white/5 hover:bg-white/5 transition-all duration-200">
                 <TableCell>
-                  <NativeSelect value={application.status} onChange={(event) => props.onStatus(application, event.target.value)}>
-                    {props.meta.applicationStatuses.map((status) => <option key={status} value={status}>{props.statusLabel(status)}</option>)}
+                  <div className="font-bold text-white text-sm">{application.user?.fullName || '-'}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{application.user?.phone || '-'}</div>
+                </TableCell>
+                <TableCell className="text-sm font-semibold text-white/90">{application.course?.title || '-'}</TableCell>
+                <TableCell>
+                  <NativeSelect className="h-9 rounded-lg border-white/5 bg-background/50 text-xs font-semibold w-36" value={application.status} onChange={(event) => props.onStatus(application, event.target.value)}>
+                    {props.meta.applicationStatuses.map((status) => <option key={status} value={status} className="bg-card text-foreground">{props.statusLabel(status)}</option>)}
                   </NativeSelect>
                 </TableCell>
-                <TableCell>{application.user?.city || '-'}</TableCell>
-                <TableCell>{formatDate(application.createdAt, props.lang)}</TableCell>
+                <TableCell className="text-sm text-white/80 font-medium">{application.user?.city || '-'}</TableCell>
+                <TableCell className="text-sm text-muted-foreground font-medium">{formatDate(application.createdAt, props.lang)}</TableCell>
                 <TableCell className="text-right"><RowActions onEdit={() => props.onEdit(application)} onDelete={() => props.onDelete(application)} t={props.t} /></TableCell>
               </TableRow>
             ))}
@@ -1438,30 +1498,34 @@ function UsersView(props: {
   t: Translation;
 }) {
   return (
-    <Card>
-      <CardHeader className="gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <Card className="border border-white/5 bg-card/25 backdrop-blur-md">
+      <CardHeader className="gap-4 lg:flex-row lg:items-center lg:justify-between pb-6">
         <div>
-          <CardTitle>{props.t.users.title}</CardTitle>
+          <CardTitle className="font-heading text-xl font-bold tracking-tight text-white">{props.t.users.title}</CardTitle>
           <CardDescription>{props.t.users.description}</CardDescription>
         </div>
-        <div className="flex gap-2">
-          <Input className="w-72" value={props.search} onChange={(event) => props.setSearch(event.target.value)} placeholder={props.t.users.search} />
-          <Button variant="secondary" onClick={props.onSearch}><Search className="h-4 w-4" /> {props.t.common.search}</Button>
+        <div className="flex items-center gap-3">
+          <Input className="w-72 rounded-xl border-white/5 bg-background/50 text-sm h-10" value={props.search} onChange={(event) => props.setSearch(event.target.value)} placeholder={props.t.users.search} />
+          <Button variant="secondary" className="rounded-xl h-10 text-xs font-bold" onClick={props.onSearch}><Search className="h-4 w-4" /> {props.t.common.search}</Button>
         </div>
       </CardHeader>
       <CardContent className="overflow-x-auto">
         <Table>
-          <TableHeader><TableRow><TableHead>{props.t.users.client}</TableHead><TableHead>{props.t.users.telegram}</TableHead><TableHead>{props.t.users.phone}</TableHead><TableHead>{props.t.users.city}</TableHead><TableHead>{props.t.users.applications}</TableHead><TableHead /></TableRow></TableHeader>
+          <TableHeader className="border-b border-white/5"><TableRow><TableHead className="text-white">{props.t.users.client}</TableHead><TableHead className="text-white">{props.t.users.telegram}</TableHead><TableHead className="text-white">{props.t.users.phone}</TableHead><TableHead className="text-white">{props.t.users.city}</TableHead><TableHead className="text-white">{props.t.users.applications}</TableHead><TableHead /></TableRow></TableHeader>
           <TableBody>
             {props.users.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell><div className="font-medium">{user.fullName}</div><div className="text-sm text-muted-foreground">{user.gender || '-'} · {user.age || '-'} {props.t.common.years}</div></TableCell>
-                <TableCell>{user.username ? `@${user.username}` : user.telegramId}</TableCell>
-                <TableCell>{user.phone || '-'}</TableCell>
-                <TableCell>{user.city || '-'}</TableCell>
-                <TableCell>{user._count?.applications ?? 0}</TableCell>
+              <TableRow key={user.id} className="border-b border-white/5 hover:bg-white/5 transition-all duration-200">
+                <TableCell>
+                  <div className="font-bold text-white text-sm">{user.fullName}</div>
+                  <div className="text-xs text-muted-foreground mt-1 font-medium">{user.gender || '-'} · {user.age || '-'} {props.t.common.years}</div>
+                </TableCell>
+                <TableCell className="text-sm font-semibold text-white/90">{user.username ? `@${user.username}` : user.telegramId}</TableCell>
+                <TableCell className="text-sm font-semibold text-white/90">{user.phone || '-'}</TableCell>
+                <TableCell className="text-sm text-white/80 font-medium">{user.city || '-'}</TableCell>
+                <TableCell className="text-sm font-bold font-heading text-white">{user._count?.applications ?? 0}</TableCell>
                 <TableCell className="text-right"><RowActions onEdit={() => props.onEdit(user)} onDelete={() => props.onDelete(user)} t={props.t} /></TableCell>
               </TableRow>
+
             ))}
           </TableBody>
         </Table>
@@ -1613,38 +1677,41 @@ function SchemasView({
     });
   };
   return (
-    <div className="grid gap-5">
-      <div className="grid gap-5 xl:grid-cols-2">
+    <div className="grid gap-6">
+      <div className="grid gap-6 xl:grid-cols-2">
         {(['course', 'application'] as const).map((schemaName) => (
-          <Card key={schemaName}>
-            <CardHeader className="flex-row items-center justify-between space-y-0">
+          <Card key={schemaName} className="border border-white/5 bg-card/25 backdrop-blur-md">
+            <CardHeader className="flex-row items-center justify-between space-y-0 pb-6 border-b border-white/5">
               <div>
-                <CardTitle>{schemas[schemaName].title}</CardTitle>
-                <CardDescription>{schemas[schemaName].description}</CardDescription>
+                <CardTitle className="font-heading text-lg font-bold text-white">{schemas[schemaName].title}</CardTitle>
+                <CardDescription className="text-xs">{schemas[schemaName].description}</CardDescription>
               </div>
-              <Button variant="secondary" onClick={() => addQuestion(schemaName)}><Plus className="h-4 w-4" /> {t.common.add}</Button>
+              <Button variant="secondary" className="rounded-xl h-9 text-xs font-bold" onClick={() => addQuestion(schemaName)}><Plus className="h-4 w-4" /> {t.common.add}</Button>
             </CardHeader>
-            <CardContent className="grid gap-3">
+            <CardContent className="grid gap-4.5 pt-6">
               {schemas[schemaName].questions.map((question, index) => (
-                <div key={`${question.key}-${index}`} className="grid gap-3 rounded-lg border bg-muted/35 p-3 md:grid-cols-2">
-                  <Field label={t.schemas.key}><Input value={question.key} onChange={(event) => updateQuestion(schemaName, index, { key: event.target.value })} /></Field>
-                  <Field label={t.schemas.label}><Input value={question.label} onChange={(event) => updateQuestion(schemaName, index, { label: event.target.value })} /></Field>
+                <div key={`${question.key}-${index}`} className="grid gap-4 rounded-xl border border-white/5 bg-slate-950/20 p-4 hover:bg-slate-950/30 transition-all duration-300 md:grid-cols-2">
+                  <Field label={t.schemas.key}><Input className="rounded-xl border-white/5 bg-background/50 h-10 text-xs" value={question.key} onChange={(event) => updateQuestion(schemaName, index, { key: event.target.value })} /></Field>
+                  <Field label={t.schemas.label}><Input className="rounded-xl border-white/5 bg-background/50 h-10 text-xs" value={question.label} onChange={(event) => updateQuestion(schemaName, index, { label: event.target.value })} /></Field>
                   <Field label={t.schemas.questionType}>
-                    <NativeSelect value={question.questionType} onChange={(event) => updateQuestion(schemaName, index, { questionType: event.target.value })}>
-                      {meta.questionTypes.map((type) => <option key={type} value={type}>{type}</option>)}
+                    <NativeSelect className="rounded-xl border-white/5 bg-background/50 h-10 text-xs focus:ring-1 focus:ring-primary/20" value={question.questionType} onChange={(event) => updateQuestion(schemaName, index, { questionType: event.target.value })}>
+                      {meta.questionTypes.map((type) => <option key={type} value={type} className="bg-card text-foreground">{type}</option>)}
                     </NativeSelect>
                   </Field>
                   <Field label={t.schemas.responseType}>
-                    <NativeSelect value={question.responseType} onChange={(event) => updateQuestion(schemaName, index, { responseType: event.target.value })}>
-                      {meta.responseTypes.map((type) => <option key={type} value={type}>{type}</option>)}
+                    <NativeSelect className="rounded-xl border-white/5 bg-background/50 h-10 text-xs focus:ring-1 focus:ring-primary/20" value={question.responseType} onChange={(event) => updateQuestion(schemaName, index, { responseType: event.target.value })}>
+                      {meta.responseTypes.map((type) => <option key={type} value={type} className="bg-card text-foreground">{type}</option>)}
                     </NativeSelect>
                   </Field>
-                  <Field className="md:col-span-2" label={t.schemas.placeholder}><Input value={question.placeholder || ''} onChange={(event) => updateQuestion(schemaName, index, { placeholder: event.target.value })} /></Field>
-                  <Field className="md:col-span-2" label={t.schemas.helpText}><Input value={question.helpText || ''} onChange={(event) => updateQuestion(schemaName, index, { helpText: event.target.value })} /></Field>
-                  <Field className="md:col-span-2" label={t.schemas.options}><Input value={(question.options || []).join(', ')} onChange={(event) => updateQuestion(schemaName, index, { options: event.target.value.split(',').map((item) => item.trim()).filter(Boolean) })} /></Field>
-                  <div className="flex items-center justify-between md:col-span-2">
-                    <label className="flex items-center gap-2 text-sm font-medium"><input type="checkbox" checked={question.required} onChange={(event) => updateQuestion(schemaName, index, { required: event.target.checked })} /> {t.schemas.required}</label>
-                    <Button variant="destructive" size="sm" onClick={() => removeQuestion(schemaName, index)}><Trash2 className="h-4 w-4" /> {t.common.remove}</Button>
+                  <Field className="md:col-span-2" label={t.schemas.placeholder}><Input className="rounded-xl border-white/5 bg-background/50 h-10 text-xs" value={question.placeholder || ''} onChange={(event) => updateQuestion(schemaName, index, { placeholder: event.target.value })} /></Field>
+                  <Field className="md:col-span-2" label={t.schemas.helpText}><Input className="rounded-xl border-white/5 bg-background/50 h-10 text-xs" value={question.helpText || ''} onChange={(event) => updateQuestion(schemaName, index, { helpText: event.target.value })} /></Field>
+                  <Field className="md:col-span-2" label={t.schemas.options}><Input className="rounded-xl border-white/5 bg-background/50 h-10 text-xs" value={(question.options || []).join(', ')} onChange={(event) => updateQuestion(schemaName, index, { options: event.target.value.split(',').map((item) => item.trim()).filter(Boolean) })} /></Field>
+                  <div className="flex items-center justify-between md:col-span-2 mt-2">
+                    <label className="flex items-center gap-2 text-xs font-semibold text-white/80 cursor-pointer select-none">
+                      <input type="checkbox" className="rounded border-white/20 bg-slate-950/50 text-primary focus:ring-primary/20 cursor-pointer" checked={question.required} onChange={(event) => updateQuestion(schemaName, index, { required: event.target.checked })} />
+                      {t.schemas.required}
+                    </label>
+                    <Button variant="destructive" className="rounded-lg h-8 px-3 text-[10px] font-bold" onClick={() => removeQuestion(schemaName, index)}><Trash2 className="h-3 w-3" /> {t.common.remove}</Button>
                   </div>
                 </div>
               ))}
@@ -1659,22 +1726,44 @@ function SchemasView({
 
 function BotView({ health, authUser, setView, t }: { health: string; authUser: AdminUser | null; setView: (view: View) => void; t: Translation }) {
   return (
-    <div className="grid gap-5 xl:grid-cols-2">
-      <Card>
-        <CardHeader><CardTitle>{t.bot.health}</CardTitle><CardDescription>{t.bot.healthDescription}</CardDescription></CardHeader>
-        <CardContent className="grid grid-cols-[150px_1fr] gap-4">
-          <span className="text-muted-foreground">{t.bot.apiHealth}</span><Badge variant={health === 'healthy' ? 'default' : 'destructive'}>{health === 'healthy' ? t.common.healthy : health === 'down' ? t.common.down : t.common.unknown}</Badge>
-          <span className="text-muted-foreground">{t.bot.protectedApi}</span><Badge variant={authUser ? 'default' : 'secondary'}>{authUser ? t.common.connected : t.bot.waitingKey}</Badge>
-          <span className="text-muted-foreground">{t.bot.excel}</span><strong>{t.bot.available}</strong>
-          <span className="text-muted-foreground">{t.bot.notifications}</span><strong>{t.bot.configured}</strong>
+    <div className="grid gap-6 xl:grid-cols-2">
+      <Card className="border border-white/5 bg-card/25 backdrop-blur-md">
+        <CardHeader><CardTitle className="font-heading text-lg font-bold text-white">{t.bot.health}</CardTitle><CardDescription>{t.bot.healthDescription}</CardDescription></CardHeader>
+        <CardContent className="pt-2">
+          <div className="flex flex-col divide-y divide-white/5 text-sm">
+            <div className="flex items-center justify-between py-3">
+              <span className="font-semibold text-muted-foreground">{t.bot.apiHealth}</span>
+              <Badge className={cn("text-[10px] font-bold px-2.5 py-0.5 rounded-lg border uppercase tracking-wide",
+                health === 'healthy' ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : health === 'down' ? "bg-rose-500/10 text-rose-400 border-rose-500/20" : "bg-slate-500/10 text-slate-400 border-slate-500/20"
+              )}>
+                {health === 'healthy' ? t.common.healthy : health === 'down' ? t.common.down : t.common.unknown}
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between py-3">
+              <span className="font-semibold text-muted-foreground">{t.bot.protectedApi}</span>
+              <Badge className={cn("text-[10px] font-bold px-2.5 py-0.5 rounded-lg border uppercase tracking-wide",
+                authUser ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-slate-500/10 text-slate-400 border-slate-500/20"
+              )}>
+                {authUser ? t.common.connected : t.bot.waitingKey}
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between py-3">
+              <span className="font-semibold text-muted-foreground">{t.bot.excel}</span>
+              <span className="text-xs font-bold text-white bg-white/5 border border-white/5 px-2.5 py-1 rounded-lg">{t.bot.available}</span>
+            </div>
+            <div className="flex items-center justify-between py-3">
+              <span className="font-semibold text-muted-foreground">{t.bot.notifications}</span>
+              <span className="text-xs font-bold text-white bg-white/5 border border-white/5 px-2.5 py-1 rounded-lg">{t.bot.configured}</span>
+            </div>
+          </div>
         </CardContent>
       </Card>
-      <Card>
-        <CardHeader><CardTitle>{t.bot.workflows}</CardTitle><CardDescription>{t.bot.workflowsDescription}</CardDescription></CardHeader>
-        <CardContent className="grid gap-2">
-          <Button variant="secondary" onClick={() => setView('applications')}>{t.bot.reviewApplications}</Button>
-          <Button variant="secondary" onClick={() => setView('courses')}>{t.bot.manageCourses}</Button>
-          <Button variant="secondary" onClick={() => setView('schemas')}>{t.bot.adjustQuestions}</Button>
+      <Card className="border border-white/5 bg-card/25 backdrop-blur-md">
+        <CardHeader><CardTitle className="font-heading text-lg font-bold text-white">{t.bot.workflows}</CardTitle><CardDescription>{t.bot.workflowsDescription}</CardDescription></CardHeader>
+        <CardContent className="grid gap-3 pt-2">
+          <Button variant="secondary" className="rounded-xl h-11 justify-start px-4 hover:scale-[1.01] hover:bg-white/5 transition-all duration-300 font-semibold" onClick={() => setView('applications')}>{t.bot.reviewApplications}</Button>
+          <Button variant="secondary" className="rounded-xl h-11 justify-start px-4 hover:scale-[1.01] hover:bg-white/5 transition-all duration-300 font-semibold" onClick={() => setView('courses')}>{t.bot.manageCourses}</Button>
+          <Button variant="secondary" className="rounded-xl h-11 justify-start px-4 hover:scale-[1.01] hover:bg-white/5 transition-all duration-300 font-semibold" onClick={() => setView('schemas')}>{t.bot.adjustQuestions}</Button>
         </CardContent>
       </Card>
     </div>
@@ -1698,19 +1787,19 @@ function EditorDialog({
 }) {
   return (
     <Dialog open={Boolean(editor)} onOpenChange={(open) => !open && setEditor(null)}>
-      <DialogContent>
+      <DialogContent className="border border-white/5 bg-card/95 backdrop-blur-xl rounded-2xl max-w-lg shadow-2xl">
         <DialogHeader>
-          <DialogTitle>{editor?.item ? t.form.edit : t.form.new} {editor?.type}</DialogTitle>
-          <DialogDescription>{t.form.changesProtected}</DialogDescription>
+          <DialogTitle className="font-heading text-xl font-bold text-white">{editor?.item ? t.form.edit : t.form.new} {editor?.type}</DialogTitle>
+          <DialogDescription className="text-xs text-muted-foreground/80">{t.form.changesProtected}</DialogDescription>
         </DialogHeader>
-        <form id="editor-form" className="grid gap-4 md:grid-cols-2" onSubmit={onSubmit}>
+        <form id="editor-form" className="grid gap-4 md:grid-cols-2 py-4" onSubmit={onSubmit}>
           {editor?.type === 'course' && <CourseForm course={editor.item} meta={meta} t={t} />}
           {editor?.type === 'application' && <ApplicationForm application={editor.item} courses={courses} meta={meta} t={t} />}
           {editor?.type === 'user' && <UserForm user={editor.item} t={t} />}
         </form>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setEditor(null)}>{t.common.cancel}</Button>
-          <Button type="submit" form="editor-form">{t.common.save}</Button>
+        <DialogFooter className="gap-2">
+          <Button variant="outline" className="rounded-xl border-white/5 bg-muted/40 hover:bg-muted/80 text-xs font-semibold h-10 px-5" onClick={() => setEditor(null)}>{t.common.cancel}</Button>
+          <Button type="submit" form="editor-form" className="rounded-xl shadow-lg shadow-primary/20 hover:shadow-primary/30 text-xs font-bold h-10 px-5">{t.common.save}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -1721,19 +1810,21 @@ function CourseForm({ course, meta, t }: { course?: Course; meta: AdminMeta; t: 
   return (
     <>
       <Field label={t.form.title}><Input name="title" defaultValue={course?.title || ''} required /></Field>
-      <Field label={t.form.format}><NativeSelect name="format" defaultValue={course?.format || 'ONLINE'}>{Object.entries(meta.courseFormats).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</NativeSelect></Field>
+      <Field label={t.form.format}><NativeSelect name="format" defaultValue={course?.format || 'ONLINE'}>{Object.entries(meta.courseFormats).map(([key, label]) => <option key={key} value={key} className="bg-card text-foreground">{label}</option>)}</NativeSelect></Field>
       <Field label={t.form.educationType}><Input name="educationType" defaultValue={course?.educationType || ''} /></Field>
       <Field label={t.form.duration}><Input name="duration" defaultValue={course?.duration || ''} /></Field>
       <Field label={t.form.cost}><Input name="cost" defaultValue={course?.cost || ''} /></Field>
       <Field label={t.form.imageFileId}><Input name="imageFileId" defaultValue={course?.imageFileId || ''} /></Field>
       <Field label={t.form.imageUpload}>
-        <Input name="courseImage" type="file" accept="image/*" />
+        <Input name="courseImage" type="file" accept="image/*" className="file:text-white file:font-semibold file:bg-white/5 file:border-0 file:rounded-lg file:px-2.5 file:py-1 cursor-pointer" />
       </Field>
       <Field label={t.form.ageMin}><Input name="ageMin" type="number" defaultValue={course?.ageMin ?? 18} /></Field>
       <Field label={t.form.ageMax}><Input name="ageMax" type="number" defaultValue={course?.ageMax ?? 45} /></Field>
-      <label className="flex items-center gap-2 text-sm font-medium"><input name="hasPractice" type="checkbox" defaultChecked={course?.hasPractice || false} /> {t.form.hasPractice}</label>
-      <label className="flex items-center gap-2 text-sm font-medium"><input name="canPayInInstallments" type="checkbox" defaultChecked={course?.canPayInInstallments || false} /> {t.form.installments}</label>
-      <label className="flex items-center gap-2 text-sm font-medium"><input name="isActive" type="checkbox" defaultChecked={course?.isActive ?? true} /> {t.form.active}</label>
+      <div className="flex flex-col gap-2.5 md:col-span-2 pt-2">
+        <label className="flex items-center gap-2.5 text-xs font-semibold text-white/80 cursor-pointer select-none"><input name="hasPractice" type="checkbox" className="rounded border-white/20 bg-slate-950/50 text-primary focus:ring-primary/20 cursor-pointer" defaultChecked={course?.hasPractice || false} /> {t.form.hasPractice}</label>
+        <label className="flex items-center gap-2.5 text-xs font-semibold text-white/80 cursor-pointer select-none"><input name="canPayInInstallments" type="checkbox" className="rounded border-white/20 bg-slate-950/50 text-primary focus:ring-primary/20 cursor-pointer" defaultChecked={course?.canPayInInstallments || false} /> {t.form.installments}</label>
+        <label className="flex items-center gap-2.5 text-xs font-semibold text-white/80 cursor-pointer select-none"><input name="isActive" type="checkbox" className="rounded border-white/20 bg-slate-950/50 text-primary focus:ring-primary/20 cursor-pointer" defaultChecked={course?.isActive ?? true} /> {t.form.active}</label>
+      </div>
       <Field label={t.form.additionalInfo} className="md:col-span-2"><Textarea name="additionalInfo" defaultValue={course?.additionalInfo || ''} /></Field>
     </>
   );
@@ -1747,20 +1838,20 @@ function ApplicationForm({ application, courses, meta, t }: { application?: Appl
           <Field label={t.form.telegramId}><Input name="telegramId" required /></Field>
           <Field label={t.form.telegramUsername}><Input name="telegramUsername" /></Field>
           <Field label={t.form.fullName}><Input name="fullName" required /></Field>
-          <Field label={t.form.gender}><NativeSelect name="gender" defaultValue="MALE"><option value="MALE">{t.form.male}</option><option value="FEMALE">{t.form.female}</option></NativeSelect></Field>
+          <Field label={t.form.gender}><NativeSelect name="gender" defaultValue="MALE"><option value="MALE" className="bg-card text-foreground">{t.form.male}</option><option value="FEMALE" className="bg-card text-foreground">{t.form.female}</option></NativeSelect></Field>
           <Field label={t.form.birthDateText}><Input name="birthDate" placeholder="01.01.2000" required /></Field>
           <Field label={t.form.phone}><Input name="phone" required /></Field>
           <Field label={t.form.city}><Input name="city" required /></Field>
         </>
       )}
-      <Field label={t.form.course}><NativeSelect name="courseId" defaultValue={application?.courseId || courses[0]?.id}>{courses.map((course) => <option key={course.id} value={course.id}>{course.title}</option>)}</NativeSelect></Field>
-      {application && <Field label={t.form.status}><NativeSelect name="status" defaultValue={application.status}>{meta.applicationStatuses.map((status) => <option key={status} value={status}>{meta.applicationStatusLabels[status] || status}</option>)}</NativeSelect></Field>}
+      <Field label={t.form.course}><NativeSelect name="courseId" defaultValue={application?.courseId || courses[0]?.id}>{courses.map((course) => <option key={course.id} value={course.id} className="bg-card text-foreground">{course.title}</option>)}</NativeSelect></Field>
+      {application && <Field label={t.form.status}><NativeSelect name="status" defaultValue={application.status}>{meta.applicationStatuses.map((status) => <option key={status} value={status} className="bg-card text-foreground">{meta.applicationStatusLabels[status] || status}</option>)}</NativeSelect></Field>}
       <Field label={t.form.experience}><Input name="experience" defaultValue={application?.experience || ''} /></Field>
       <Field label={t.form.workplace}><Input name="workplace" defaultValue={application?.workplace || ''} /></Field>
-      <Field label={t.form.educationType}><NativeSelect name="educationType" defaultValue={application?.educationType || ''}><option value="">{t.common.notSet}</option>{meta.educationTypes.map((type) => <option key={type} value={type}>{type}</option>)}</NativeSelect></Field>
+      <Field label={t.form.educationType}><NativeSelect name="educationType" defaultValue={application?.educationType || ''}><option value="" className="bg-card text-foreground">{t.common.notSet}</option>{meta.educationTypes.map((type) => <option key={type} value={type} className="bg-card text-foreground">{type}</option>)}</NativeSelect></Field>
       <Field label={t.form.specialization}><Input name="specialization" defaultValue={application?.specialization || ''} /></Field>
-      <Field label={t.form.learningGoal}><NativeSelect name="learningGoal" defaultValue={application?.learningGoal || meta.learningGoals[0]}>{meta.learningGoals.map((goal) => <option key={goal} value={goal}>{goal}</option>)}</NativeSelect></Field>
-      <Field label={t.form.studyFormat}><NativeSelect name="studyFormat" defaultValue={application?.studyFormat || meta.studyFormats[0]}>{meta.studyFormats.map((format) => <option key={format} value={format}>{format}</option>)}</NativeSelect></Field>
+      <Field label={t.form.learningGoal}><NativeSelect name="learningGoal" defaultValue={application?.learningGoal || meta.learningGoals[0]}>{meta.learningGoals.map((goal) => <option key={goal} value={goal} className="bg-card text-foreground">{goal}</option>)}</NativeSelect></Field>
+      <Field label={t.form.studyFormat}><NativeSelect name="studyFormat" defaultValue={application?.studyFormat || meta.studyFormats[0]}>{meta.studyFormats.map((format) => <option key={format} value={format} className="bg-card text-foreground">{format}</option>)}</NativeSelect></Field>
       <Field label={t.form.studyTime}><Input name="studyTime" defaultValue={application?.studyTime || ''} required /></Field>
       <Field label={t.form.source}><Input name="source" defaultValue={application?.source || 'admin'} /></Field>
       <Field label={t.form.comment} className="md:col-span-2"><Textarea name="comment" defaultValue={application?.comment || ''} /></Field>
@@ -1775,7 +1866,7 @@ function UserForm({ user, t }: { user: User; t: Translation }) {
       <Field label={t.form.username}><Input name="username" defaultValue={user.username || ''} /></Field>
       <Field label={t.form.fullName}><Input name="fullName" defaultValue={user.fullName} required /></Field>
       <Field label={t.form.phone}><Input name="phone" defaultValue={user.phone || ''} /></Field>
-      <Field label={t.form.gender}><NativeSelect name="gender" defaultValue={user.gender || ''}><option value="">{t.common.notSet}</option><option value="MALE">{t.form.male}</option><option value="FEMALE">{t.form.female}</option></NativeSelect></Field>
+      <Field label={t.form.gender}><NativeSelect name="gender" defaultValue={user.gender || ''}><option value="" className="bg-card text-foreground">{t.common.notSet}</option><option value="MALE" className="bg-card text-foreground">{t.form.male}</option><option value="FEMALE" className="bg-card text-foreground">{t.form.female}</option></NativeSelect></Field>
       <Field label={t.form.age}><Input name="age" type="number" defaultValue={user.age || ''} /></Field>
       <Field label={t.form.birthDate}><Input name="birthDate" type="date" defaultValue={user.birthDate ? new Date(user.birthDate).toISOString().slice(0, 10) : ''} /></Field>
       <Field label={t.form.city}><Input name="city" defaultValue={user.city || ''} /></Field>
@@ -1784,14 +1875,14 @@ function UserForm({ user, t }: { user: User; t: Translation }) {
 }
 
 function Field({ label, className, children }: { label: string; className?: string; children: React.ReactNode }) {
-  return <div className={cn('grid gap-2', className)}><Label>{label}</Label>{children}</div>;
+  return <div className={cn('grid gap-1.5', className)}><Label className="text-xs font-semibold text-white/80">{label}</Label>{children}</div>;
 }
 
 function RowActions({ onEdit, onDelete, t }: { onEdit: () => void; onDelete: () => void; t: Translation }) {
   return (
-    <div className="flex justify-end gap-2">
-      <Button variant="secondary" size="sm" onClick={onEdit}>{t.common.edit}</Button>
-      <Button variant="destructive" size="sm" onClick={onDelete} aria-label={t.common.remove} title={t.common.remove}><Trash2 className="h-4 w-4" /></Button>
+    <div className="flex items-center justify-end gap-2">
+      <Button variant="outline" size="sm" className="h-8 rounded-lg border-white/5 bg-muted/40 px-2.5 text-xs font-semibold hover:bg-muted/80" onClick={onEdit}>{t.common.edit}</Button>
+      <Button variant="destructive" size="sm" className="flex h-8 w-8 items-center justify-center rounded-lg p-0" onClick={onDelete} aria-label={t.common.remove} title={t.common.remove}><Trash2 className="h-3.5 w-3.5" /></Button>
     </div>
   );
 }
