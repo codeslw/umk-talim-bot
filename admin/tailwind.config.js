@@ -30,6 +30,15 @@ module.exports = {
           DEFAULT: 'hsl(var(--accent))',
           foreground: 'hsl(var(--accent-foreground))'
         },
+        sidebar: {
+          DEFAULT: 'hsl(var(--sidebar))',
+          foreground: 'hsl(var(--sidebar-foreground))',
+          muted: 'hsl(var(--sidebar-muted))',
+          border: 'hsl(var(--sidebar-border))',
+          accent: 'hsl(var(--sidebar-accent))',
+          active: 'hsl(var(--sidebar-active))',
+          panel: 'hsl(var(--sidebar-panel))'
+        },
         card: {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))'
@@ -41,7 +50,8 @@ module.exports = {
         sm: 'calc(var(--radius) - 4px)'
       },
       boxShadow: {
-        premium: '0 18px 55px rgba(21, 30, 42, 0.12)'
+        premium: '0 8px 24px rgba(15, 23, 42, 0.08)',
+        enterprise: '0 18px 45px rgba(15, 23, 42, 0.22)'
       }
     }
   },

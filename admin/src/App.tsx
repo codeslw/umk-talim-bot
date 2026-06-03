@@ -8,6 +8,8 @@ import {
   Languages,
   LayoutDashboard,
   Loader2,
+  PanelLeftClose,
+  PanelLeftOpen,
   Plus,
   RefreshCcw,
   Save,
@@ -614,6 +616,7 @@ export function App() {
   const [statusFilter, setStatusFilter] = useState('');
   const [courseFilter, setCourseFilter] = useState('');
   const [editor, setEditor] = useState<Editor>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const api = useMemo(() => new ApiClient(), []);
   const t = translations[lang];
@@ -810,37 +813,62 @@ export function App() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-72 flex-col border-r border-white/10 bg-[linear-gradient(165deg,#10201f_0%,#18332e_55%,#211b15_100%)] p-5 text-white shadow-2xl lg:flex">
-        <div className="flex items-center gap-3">
-          <div className="grid h-11 w-11 place-items-center rounded-lg bg-[linear-gradient(135deg,hsl(var(--primary)),hsl(var(--accent)))] text-lg font-black shadow-lg shadow-black/20">U</div>
-          <div>
-            <div className="font-semibold">UMK Talim</div>
-            <div className="text-xs text-white/55">{t.common.brandSubtitle}</div>
-          </div>
+      <aside className={cn(
+        'fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground shadow-enterprise transition-[width] duration-200 lg:flex',
+        sidebarCollapsed ? 'w-20 p-3' : 'w-72 p-5'
+      )}>
+        <div className={cn('flex items-center gap-3', sidebarCollapsed && 'justify-center')}>
+          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-primary text-lg font-black text-primary-foreground shadow-sm">U</div>
+          {!sidebarCollapsed && (
+            <div className="min-w-0">
+              <div className="font-semibold">UMK Talim</div>
+              <div className="truncate text-xs text-sidebar-muted">{t.common.brandSubtitle}</div>
+            </div>
+          )}
         </div>
         <nav className="mt-9 grid gap-1">
           {navItems.map((item) => (
             <button
               key={item.view}
-              className={cn('flex h-11 items-center gap-3 rounded-md px-3 text-sm text-white/75 transition hover:bg-white/10 hover:text-white', view === item.view && 'bg-white/12 text-white')}
+              aria-label={t.nav[item.labelKey]}
+              title={sidebarCollapsed ? t.nav[item.labelKey] : undefined}
+              className={cn(
+                'flex h-11 items-center gap-3 rounded-md px-3 text-sm font-medium text-sidebar-muted transition hover:bg-sidebar-accent hover:text-sidebar-foreground',
+                view === item.view && 'bg-sidebar-active text-sidebar-foreground shadow-sm',
+                sidebarCollapsed && 'justify-center px-0'
+              )}
               onClick={() => setView(item.view)}
             >
               <item.icon className="h-4 w-4" />
-              {t.nav[item.labelKey]}
+              {!sidebarCollapsed && t.nav[item.labelKey]}
             </button>
           ))}
         </nav>
-        <div className="mt-auto rounded-lg border border-white/10 p-3 text-sm text-white/65">
-          {authUser ? `${t.common.connected}: ${authUser.username}` : t.common.keyRequired}
-        </div>
+        {!sidebarCollapsed && (
+          <div className="mt-auto rounded-md border border-sidebar-border bg-sidebar-panel p-3 text-sm text-sidebar-muted">
+            {authUser ? `${t.common.connected}: ${authUser.username}` : t.common.keyRequired}
+          </div>
+        )}
       </aside>
 
-      <main className="min-h-screen lg:pl-72">
-        <header className="sticky top-0 z-20 border-b bg-card/80 px-4 py-4 shadow-sm backdrop-blur md:px-7">
+      <main className={cn('min-h-screen transition-[padding] duration-200', sidebarCollapsed ? 'lg:pl-20' : 'lg:pl-72')}>
+        <header className="sticky top-0 z-20 border-b bg-card/92 px-4 py-4 shadow-sm backdrop-blur md:px-7">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">{t.common.console}</p>
-              <h1 className="text-2xl font-semibold">{t.nav[view]}</h1>
+            <div className="flex items-center gap-3">
+              <Button
+                className="hidden lg:inline-flex"
+                variant="outline"
+                size="icon"
+                aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                onClick={() => setSidebarCollapsed((value) => !value)}
+              >
+                {sidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+              </Button>
+              <div>
+                <p className="text-xs font-bold uppercase text-primary">{t.common.console}</p>
+                <h1 className="text-2xl font-semibold">{t.nav[view]}</h1>
+              </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <div className="flex h-10 items-center gap-2 rounded-md border bg-background/70 px-2">
@@ -861,7 +889,7 @@ export function App() {
                   <Button onClick={connect}>{needsBootstrap ? t.common.bootstrap : t.common.connect}</Button>
                 </>
               )}
-              <Button variant="outline" size="icon" onClick={loadData} disabled={loading}>
+              <Button variant="outline" size="icon" onClick={loadData} disabled={loading} aria-label="Refresh dashboard" title="Refresh dashboard">
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
               </Button>
             </div>
@@ -1435,7 +1463,7 @@ function RowActions({ onEdit, onDelete, t }: { onEdit: () => void; onDelete: () 
   return (
     <div className="flex justify-end gap-2">
       <Button variant="secondary" size="sm" onClick={onEdit}>{t.common.edit}</Button>
-      <Button variant="destructive" size="sm" onClick={onDelete}><Trash2 className="h-4 w-4" /></Button>
+      <Button variant="destructive" size="sm" onClick={onDelete} aria-label={t.common.remove} title={t.common.remove}><Trash2 className="h-4 w-4" /></Button>
     </div>
   );
 }
