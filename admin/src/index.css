@@ -4,6 +4,34 @@
 
 @layer base {
   :root {
+    --background: 218 33% 97%;
+    --foreground: 224 34% 14%;
+    --card: 0 0% 100%;
+    --card-foreground: 224 34% 14%;
+    --primary: 246 74% 58%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 24% 94%;
+    --secondary-foreground: 224 34% 18%;
+    --muted: 220 24% 94%;
+    --muted-foreground: 222 12% 44%;
+    --accent: 189 90% 43%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 350 78% 52%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 18% 87%;
+    --input: 220 18% 84%;
+    --ring: 246 74% 58%;
+    --sidebar: 0 0% 100%;
+    --sidebar-foreground: 224 34% 14%;
+    --sidebar-muted: 222 12% 44%;
+    --sidebar-border: 220 18% 87%;
+    --sidebar-accent: 220 24% 94%;
+    --sidebar-active: 246 74% 95%;
+    --sidebar-panel: 220 33% 98%;
+    --radius: 0.75rem;
+  }
+
+  .dark {
     --background: 224 40% 8%;
     --foreground: 210 40% 98%;
     --card: 224 40% 11%;
@@ -28,7 +56,6 @@
     --sidebar-accent: 224 40% 15%;
     --sidebar-active: 250 85% 16%;
     --sidebar-panel: 224 40% 11%;
-    --radius: 0.75rem;
   }
 
   * {
@@ -39,11 +66,16 @@
     @apply bg-background text-foreground antialiased;
     min-height: 100vh;
     background:
+      linear-gradient(135deg, hsl(var(--background)), hsl(var(--muted)));
+    font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  }
+
+  .dark body {
+    background:
       radial-gradient(circle at 10% 10%, rgba(99, 102, 241, 0.12), transparent 45rem),
       radial-gradient(circle at 90% 10%, rgba(6, 182, 212, 0.12), transparent 45rem),
       radial-gradient(circle at 50% 90%, rgba(139, 92, 246, 0.08), transparent 40rem),
       #090d16;
-    font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
   }
 
   /* Custom Premium Scrollbar */
@@ -55,10 +87,10 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.08);
+    background: hsl(var(--muted-foreground) / 0.22);
     border-radius: 4px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.15);
+    background: hsl(var(--muted-foreground) / 0.32);
   }
 }
